@@ -156,6 +156,27 @@ export default function Home() {
     // Divider stays static
   }, []);
 
+  // Stitch Line Animation for "Cara Pesan"
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const stitchPaths = document.querySelectorAll('.path-stitch-line');
+      stitchPaths.forEach((path) => {
+        const length = (path as SVGPathElement).getTotalLength();
+        gsap.set(path, { strokeDasharray: length, strokeDashoffset: length });
+        gsap.to(path, {
+          strokeDashoffset: 0,
+          scrollTrigger: {
+            trigger: '#cara-pesan',
+            start: 'top 60%',
+            end: 'bottom 80%',
+            scrub: 1,
+          }
+        });
+      });
+    });
+    return () => ctx.revert();
+  }, []);
+
   const handleCelebrate = (productImage?: string) => {
     setCelebrateProductImage(productImage);
     setCelebrateTrigger(false);
@@ -542,10 +563,7 @@ export default function Home() {
       q: "Apakah boneka flanel Simoengil aman untuk bayi dan balita?",
       a: "Sangat aman, Bu. Boneka kami terbuat dari kain flanel premium yang lembut dan hypoallergenic (tidak mudah menyebabkan alergi). Jahitannya rapi, tidak ada bagian kecil yang mudah lepas, sehingga aman untuk anak kecil dan bayi.",
     },
-    {
-      q: "Boneka flanel boleh dicuci tidak?",
-      a: "Boneka flanel sebaiknya tidak dicuci agar bahannya tetap bagus.",
-    },
+
     {
       q: "Apakah bisa pesan boneka untuk kado wisuda dengan custom nama?",
       a: "Tidak bisa, untuk pesanan custom tidak dilakukan di website, jika ingin dilakukan custom silahkan lakukan pembelian di Shopee",
@@ -1446,6 +1464,172 @@ export default function Home() {
                         28 April 2026
                       </p>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* CARA PESAN SECTION */}
+          <section
+            id="cara-pesan"
+            className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 py-20 border-t border-slate-100"
+          >
+            <div className="text-center mb-16 space-y-3 relative z-20">
+              <div className="inline-flex p-2.5 rounded-2xl bg-[#FFF5F0] border border-[#E8B37D]/25 text-[#D48C70] mb-2 shadow-xs">
+                <HelpCircle className="w-5 h-5 text-[#D48C70]" />
+              </div>
+              <h2 className="font-serif text-3xl sm:text-4xl text-[#2A1F1A] leading-tight relative inline-block pb-3 font-bold">
+                Cara Mudah Memesan Boneka
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-[#D48C70] h-[3px] w-12 rounded-full"></span>
+              </h2>
+              <p className="text-slate-500 text-sm font-medium">
+                Ikuti 3 langkah mudah berikut untuk mendapatkan boneka kesayanganmu langsung ke rumah.
+              </p>
+            </div>
+
+            <div className="relative max-w-5xl mx-auto">
+              {/* Garis jahitan di belakang, hanya muncul di desktop */}
+              <svg 
+                className="hidden md:block absolute top-[4.5rem] left-0 w-full h-auto z-0 pointer-events-none"
+                viewBox="0 0 1000 140" 
+                preserveAspectRatio="none" 
+                style={{ filter: 'drop-shadow(0 2px 2px rgba(212,140,112,0.15))' }}
+              >
+                <path 
+                  className="path-stitch-line"
+                  d="M 0 40 Q 166 -10 333 40 T 666 40 T 1000 40" 
+                  fill="none" 
+                  stroke="#D48C70" 
+                  strokeWidth="3" 
+                  strokeDasharray="10 8" 
+                  strokeLinecap="round" 
+                />
+                <g transform="translate(1000, 40) rotate(35)">
+                  <path d="M -20 -2 L 0 0 L -20 2 Z" fill="#E2E8F0" stroke="#94A3B8" strokeWidth="1"/>
+                  <circle cx="-16" cy="0" r="1" fill="#D48C70"/>
+                  <path d="M -16 0 L -25 0" stroke="#D48C70" strokeWidth="2" strokeLinecap="round"/>
+                </g>
+              </svg>
+
+              {/* Garis jahitan melintang ke bawah, hanya muncul di mobile */}
+              <svg 
+                className="block md:hidden absolute left-1/2 -translate-x-1/2 top-10 w-32 h-[92%] z-0 pointer-events-none" 
+                viewBox="0 0 100 1000" 
+                preserveAspectRatio="none"
+                style={{ filter: 'drop-shadow(0 2px 2px rgba(212,140,112,0.15))' }}
+              >
+                <path 
+                  className="path-stitch-line"
+                  d="M 50 0 Q 100 166 50 333 T 50 666 T 50 1000" 
+                  fill="none" 
+                  stroke="#D48C70" 
+                  strokeWidth="4" 
+                  strokeDasharray="10 8" 
+                  strokeLinecap="round" 
+                />
+                <g transform="translate(50, 1000) rotate(90)">
+                  <path d="M -20 -2 L 0 0 L -20 2 Z" fill="#E2E8F0" stroke="#94A3B8" strokeWidth="1"/>
+                  <circle cx="-16" cy="0" r="1" fill="#D48C70"/>
+                  <path d="M -16 0 L -25 0" stroke="#D48C70" strokeWidth="2" strokeLinecap="round"/>
+                </g>
+              </svg>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12 relative z-10">
+                {/* Langkah 1 */}
+                <div className="bg-[#FFF0E5] rounded-[2.2rem] p-8 border-2 border-[#E8B37D]/40 shadow-[0_8px_30px_rgba(0,0,0,0.03)] flex flex-col items-center text-center space-y-4 hover:shadow-[0_15px_35px_rgba(212,140,112,0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                  {/* Fabric Patch */}
+                  <div className="absolute top-4 right-4 w-10 h-10 bg-[#FFF5F0] rotate-12 rounded-lg border border-[#E8B37D]/30 shadow-sm opacity-80 group-hover:rotate-6 transition-transform">
+                    {/* Cross stitches on patch */}
+                    <svg className="absolute inset-0 w-full h-full text-[#D48C70]/50" viewBox="0 0 40 40">
+                      <path d="M4 4 L8 8 M8 4 L4 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M32 4 L36 8 M36 4 L32 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M4 32 L8 36 M8 32 L4 36" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M32 32 L36 36 M36 32 L32 36" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+
+                  <div className="w-16 h-16 rounded-2xl bg-[#FFF5F0] border border-[#E8B37D]/20 text-[#D48C70] flex items-center justify-center shadow-sm relative z-10">
+                    {/* Custom Vector: Small doll picked by hand */}
+                    <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="9" r="4" fill="#FCE6CB" stroke="#D48C70" strokeWidth="1.5"/>
+                      <path d="M9 13 Q12 18 15 13" fill="#FCE6CB" stroke="#D48C70" strokeWidth="1.5"/>
+                      <path d="M12 2 L12 5" stroke="#D48C70" strokeWidth="1.5" strokeDasharray="2 2"/>
+                      {/* Pointing hand */}
+                      <path d="M16 16 L18 14 C19 13 21 15 20 17 L17 21 C16 22 14 22 13 21 L11 19 L16 16 Z" fill="white" stroke="#D48C70" strokeWidth="1.5"/>
+                      <path d="M16 16 L13 19" stroke="#D48C70" strokeWidth="1.5"/>
+                    </svg>
+                  </div>
+                  <div className="space-y-2 relative z-10">
+                    <span className="text-[10px] font-black text-pink-400 uppercase tracking-widest block">Langkah 01</span>
+                    <h3 className="font-serif text-lg text-[#2A1F1A] font-bold">Pilih Boneka Favorit</h3>
+                    <p className="text-slate-500 text-xs sm:text-sm leading-relaxed font-medium">
+                      Jelajahi katalog boneka premium kami, pilih varian ukuran, lalu klik <strong>Tambah ke Keranjang</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Langkah 2 */}
+                <div className="bg-[#FFF0E5] rounded-[2.2rem] p-8 border-2 border-[#E8B37D]/40 shadow-[0_8px_30px_rgba(0,0,0,0.03)] flex flex-col items-center text-center space-y-4 hover:shadow-[0_15px_35px_rgba(212,140,112,0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group mt-0 md:mt-8">
+                  {/* Fabric Patch */}
+                  <div className="absolute top-4 right-4 w-10 h-10 bg-[#FFF5F0] -rotate-6 rounded-lg border border-[#E8B37D]/30 shadow-sm opacity-80 group-hover:rotate-0 transition-transform">
+                    <svg className="absolute inset-0 w-full h-full text-[#D48C70]/50" viewBox="0 0 40 40">
+                      <path d="M4 4 L8 8 M8 4 L4 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M32 4 L36 8 M36 4 L32 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M4 32 L8 36 M8 32 L4 36" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M32 32 L36 36 M36 32 L32 36" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+
+                  <div className="w-16 h-16 rounded-2xl bg-[#FFF5F0] border border-[#E8B37D]/20 text-[#D48C70] flex items-center justify-center shadow-sm relative z-10">
+                    {/* Custom Vector: Parcel box with cross stitches + location pin */}
+                    <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="4" y="10" w="16" h="10" rx="2" fill="#FCE6CB" stroke="#D48C70"/>
+                      <path d="M4 14 L20 14" stroke="#D48C70" strokeDasharray="3 3"/>
+                      <path d="M12 10 L12 20" stroke="#D48C70" strokeDasharray="3 3"/>
+                      {/* Location Pin */}
+                      <path d="M12 2 C9 2 7 4 7 7 C7 11 12 16 12 16 C12 16 17 11 17 7 C17 4 15 2 12 2 Z" fill="white" stroke="#D48C70"/>
+                      <circle cx="12" cy="7" r="2" fill="#D48C70"/>
+                    </svg>
+                  </div>
+                  <div className="space-y-2 relative z-10">
+                    <span className="text-[10px] font-black text-pink-400 uppercase tracking-widest block">Langkah 02</span>
+                    <h3 className="font-serif text-lg text-[#2A1F1A] font-bold">Isi Detail Pengiriman</h3>
+                    <p className="text-slate-500 text-xs sm:text-sm leading-relaxed font-medium">
+                      Lakukan login cepat, isi alamat lengkap Anda, dan sistem kami akan menghitung biaya ongkir secara otomatis.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Langkah 3 */}
+                <div className="bg-[#FFF0E5] rounded-[2.2rem] p-8 border-2 border-[#E8B37D]/40 shadow-[0_8px_30px_rgba(0,0,0,0.03)] flex flex-col items-center text-center space-y-4 hover:shadow-[0_15px_35px_rgba(212,140,112,0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                  {/* Fabric Patch */}
+                  <div className="absolute top-4 right-4 w-10 h-10 bg-[#FFF5F0] rotate-6 rounded-lg border border-[#E8B37D]/30 shadow-sm opacity-80 group-hover:-rotate-3 transition-transform">
+                    <svg className="absolute inset-0 w-full h-full text-[#D48C70]/50" viewBox="0 0 40 40">
+                      <path d="M4 4 L8 8 M8 4 L4 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M32 4 L36 8 M36 4 L32 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M4 32 L8 36 M8 32 L4 36" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M32 32 L36 36 M36 32 L32 36" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+
+                  <div className="w-16 h-16 rounded-2xl bg-[#FFF5F0] border border-[#E8B37D]/20 text-[#D48C70] flex items-center justify-center shadow-sm relative z-10">
+                    {/* Custom Vector: Wallet/card with embroidered heart */}
+                    <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="6" w="18" h="13" rx="2" fill="#FCE6CB" stroke="#D48C70"/>
+                      <path d="M3 10 L21 10" stroke="#D48C70" strokeWidth="2"/>
+                      {/* Embroidered heart */}
+                      <path d="M11.5 15 C11.5 15 10 13.5 10 12.5 C10 11.5 11 11.5 11.5 12.5 C12 11.5 13 11.5 13 12.5 C13 13.5 11.5 15 11.5 15 Z" fill="#D48C70" stroke="#D48C70" strokeWidth="1"/>
+                      {/* Thread trailing from heart */}
+                      <path d="M12.5 14 Q15 17 18 15" stroke="#D48C70" strokeDasharray="1.5 1.5"/>
+                    </svg>
+                  </div>
+                  <div className="space-y-2 relative z-10">
+                    <span className="text-[10px] font-black text-pink-400 uppercase tracking-widest block">Langkah 03</span>
+                    <h3 className="font-serif text-lg text-[#2A1F1A] font-bold">Pembayaran Instan</h3>
+                    <p className="text-slate-500 text-xs sm:text-sm leading-relaxed font-medium">
+                      Selesaikan pembayaran aman via Midtrans (Transfer Bank, E-Wallet, dll). Pesanan Anda langsung kami proses kirim!
+                    </p>
                   </div>
                 </div>
               </div>

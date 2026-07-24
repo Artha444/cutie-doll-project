@@ -127,10 +127,6 @@ export function SiteFooter() {
               </div>
             </div>
 
-            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
-              Toko boneka & plushie buatan tangan berbahan dacron premium grade A. Aman untuk balita, hypoallergenic, lembut, dan bisa dicuci.
-            </p>
-
             {/* Contacts & Socials */}
             <div className="space-y-2 pt-1 text-xs text-slate-200" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
               <a href={`mailto:${EMAIL}`} className="flex items-center gap-2 hover:text-pink-300 transition-colors">
@@ -177,9 +173,15 @@ export function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/#contact" className="hover:text-white hover:translate-x-1 transition-all inline-block" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
-                  Kontak Kustomisasi
-                </Link>
+                <a
+                  href={SHOPEE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white hover:translate-x-1 transition-all inline-block"
+                  style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}
+                >
+                  Pesan Custom (Shopee)
+                </a>
               </li>
             </ul>
           </div>
@@ -202,16 +204,7 @@ export function SiteFooter() {
               </li>
             </ul>
 
-            <div className="pt-2">
-              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1.5" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>Pembayaran</p>
-              <div className="flex flex-wrap gap-1">
-                {['BCA', 'Mandiri', 'BRI', 'GoPay', 'ShopeePay'].map((m) => (
-                  <span key={m} className="px-1.5 py-0.5 rounded bg-white/20 text-[9px] font-bold text-white border border-white/10 shadow-sm">
-                    {m}
-                  </span>
-                ))}
-              </div>
-            </div>
+
           </div>
 
           {/* ── Kolom 4: Legal ── */}
@@ -232,14 +225,7 @@ export function SiteFooter() {
               </li>
             </ul>
 
-            <div className="pt-2">
-              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1.5" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>Jaminan Kualitas</p>
-              <div className="space-y-1 text-[11px] text-slate-200 font-medium" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
-                <p className="flex items-center gap-1">✨ 100% Dacron Premium</p>
-                <p className="flex items-center gap-1">👶 Safe & Hypoallergenic</p>
-                <p className="flex items-center gap-1">🛡️ Garansi Retur 7 Hari</p>
-              </div>
-            </div>
+
           </div>
 
         </div>

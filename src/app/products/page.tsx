@@ -389,10 +389,7 @@ export default function Home() {
     q: 'Apakah boneka flanel Simoengil aman untuk bayi dan balita?',
     a: 'Sangat aman, Bu. Boneka kami terbuat dari kain flanel premium yang lembut dan hypoallergenic (tidak mudah menyebabkan alergi). Jahitannya rapi, tidak ada bagian kecil yang mudah lepas, sehingga aman untuk anak kecil dan bayi.'
   },
-  {
-    q: 'Boneka flanel boleh dicuci tidak?',
-    a: 'Boneka flanel sebaiknya **tidak dicuci dengan mesin cuci** agar bulu dan bentuknya tetap bagus. Saran kami: cukup lap dengan kain bersih yang dibasahi air hangat kuku + sedikit sabun bayi. Jika kotor sekali, bisa dibawa ke laundry dry clean. Hindari merendam lama agar tidak merusak kain flanel.'
-  },
+
   {
     q: 'Apakah bisa pesan boneka untuk kado wisuda dengan custom nama?',
     a: 'Tidak bisa, untuk pesanan custom tidak dilakukan di website, jika ingin dilakukan custom silahkan lakukan pembelian di Shopee'
