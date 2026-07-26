@@ -1616,7 +1616,7 @@ export default function Home() {
                   <div className="w-16 h-16 rounded-2xl bg-[#FFF5F0] border border-[#E8B37D]/20 text-[#D48C70] flex items-center justify-center shadow-sm relative z-10">
                     {/* Custom Vector: Wallet/card with embroidered heart */}
                     <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="6" w="18" h="13" rx="2" fill="#FCE6CB" stroke="#D48C70"/>
+                      <rect x="3" y="6" width="18" height="13" rx="2" fill="#FCE6CB" stroke="#D48C70"/>
                       <path d="M3 10 L21 10" stroke="#D48C70" strokeWidth="2"/>
                       {/* Embroidered heart */}
                       <path d="M11.5 15 C11.5 15 10 13.5 10 12.5 C10 11.5 11 11.5 11.5 12.5 C12 11.5 13 11.5 13 12.5 C13 13.5 11.5 15 11.5 15 Z" fill="#D48C70" stroke="#D48C70" strokeWidth="1"/>
