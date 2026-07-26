@@ -1584,7 +1584,7 @@ export default function Home() {
                   <div className="w-16 h-16 rounded-2xl bg-[#FFF5F0] border border-[#E8B37D]/20 text-[#D48C70] flex items-center justify-center shadow-sm relative z-10">
                     {/* Custom Vector: Parcel box with cross stitches + location pin */}
                     <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="4" y="10" w="16" h="10" rx="2" fill="#FCE6CB" stroke="#D48C70"/>
+                      <rect x="4" y="10" width="16" height="10" rx="2" fill="#FCE6CB" stroke="#D48C70" strokeWidth="1.5"/>
                       <path d="M4 14 L20 14" stroke="#D48C70" strokeDasharray="3 3"/>
                       <path d="M12 10 L12 20" stroke="#D48C70" strokeDasharray="3 3"/>
                       {/* Location Pin */}
