@@ -417,9 +417,7 @@ export default function Header() {
                       {user.user_metadata?.avatar_url ? (
                         <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="font-black text-white text-sm tracking-tighter drop-shadow-sm">
-                          {getInitials(user.user_metadata?.full_name, user.email)}
-                        </span>
+                        <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.email || 'User')}&background=random&color=fff`} alt="Profile" className="w-full h-full object-cover" />
                       )}
                     </div>
                   </Link>

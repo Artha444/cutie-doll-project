@@ -71,6 +71,34 @@ export default function AuthModal({
     return () => clearInterval(interval);
   }, [resendCountdown]);
 
+  // Auto-close modal when successfully logged in (e.g. from popup or magic link tab)
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        onClose();
+        if (onSuccess) onSuccess();
+        // Give a slight delay before reloading to allow modal closing animation
+        setTimeout(() => window.location.reload(), 300);
+      }
+    });
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data === 'AUTH_SUCCESS') {
+        onClose();
+        if (onSuccess) onSuccess();
+        setTimeout(() => window.location.reload(), 300);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [isOpen, onClose, onSuccess, supabase.auth]);
+
   if (!isRendered) return null;
 
   const handleResendOtp = async () => {

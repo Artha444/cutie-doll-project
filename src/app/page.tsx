@@ -121,7 +121,12 @@ export default function Home() {
       const url = new URL(window.location.href);
       if (url.searchParams.has("code")) {
         const code = url.searchParams.get("code");
-        window.location.href = `/auth/callback?code=${code}`;
+        // If we are inside a popup (Google Login), redirect to popup-callback
+        if (window.opener || window.name === 'authPopup') {
+          window.location.href = `/auth/callback?code=${code}&next=/auth/popup-callback`;
+        } else {
+          window.location.href = `/auth/callback?code=${code}`;
+        }
       }
     }
   }, []);

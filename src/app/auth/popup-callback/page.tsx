@@ -8,17 +8,20 @@ export default function PopupCallback() {
   useEffect(() => {
     // Beri sedikit jeda untuk memastikan cookie sudah set dari route handler
     const timer = setTimeout(() => {
-      if (window.opener && !window.opener.closed) {
+      if ((window.opener && !window.opener.closed) || window.name === 'authPopup') {
         setStatus('Login berhasil! Menutup jendela...');
         try {
-          window.opener.postMessage('AUTH_SUCCESS', window.location.origin);
-          setTimeout(() => {
-            window.close();
-          }, 300);
+          if (window.opener) {
+            window.opener.postMessage('AUTH_SUCCESS', '*');
+          }
         } catch (e) {
           console.error("Gagal mengirim pesan ke parent window:", e);
-          setStatus('Selesai. Anda bisa menutup jendela ini.');
         }
+        
+        // Selalu coba tutup jendela jika ini adalah popup
+        setTimeout(() => {
+          window.close();
+        }, 300);
       } else {
         setStatus('Selesai. Anda bisa menutup jendela ini.');
       }
