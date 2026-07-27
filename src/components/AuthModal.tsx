@@ -77,28 +77,12 @@ export default function AuthModal({
 
   const handleResendOtp = async () => {
     setErrorMsg(null);
-    setInfoMsg(null);
-    setIsResending(true);
-    try {
-      if (email.trim().toLowerCase().endsWith('@test.com')) {
-        setInfoMsg('MODE UJI COBA: Simulasi pengiriman ulang kode OTP berhasil.');
-        setResendCountdown(60);
-        return;
-      }
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: getRedirectUrl(),
-        },
-      });
-      if (error) throw error;
-      setInfoMsg('Kode OTP baru berhasil dikirim ke emailmu.');
-      setResendCountdown(60);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal mengirim ulang kode OTP.');
-    } finally {
-      setIsResending(false);
+    setInfoMsg('Untuk alasan keamanan, silakan centang CAPTCHA kembali lalu klik "Lanjutkan" untuk mengirim ulang kode OTP.');
+    setAuthStep('email');
+    if (captchaRef.current) {
+      captchaRef.current.resetCaptcha();
     }
+    setCaptchaToken(null);
   };
 
   const getRedirectUrl = () => {
@@ -257,14 +241,35 @@ export default function AuthModal({
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token: otpCode,
-        type: 'email',
-      });
+      // Supabase has known bugs where 'type' can be strict depending on user state.
+      // We try the modern 'email' type first, then fallback to 'magiclink' and 'signup'
+      const typesToTry: ('email' | 'magiclink' | 'signup')[] = ['email', 'magiclink', 'signup'];
+      let lastError: any = null;
+      let sessionData = null;
 
-      if (error) throw error;
-      if (data?.session) {
+      for (const otpType of typesToTry) {
+        const { data, error } = await supabase.auth.verifyOtp({
+          email,
+          token: otpCode,
+          type: otpType,
+        });
+
+        if (error) {
+          lastError = error;
+          // If the error is NOT about the token being expired/invalid (e.g. rate limit), break immediately
+          if (!error.message.toLowerCase().includes('expired or is invalid') && !error.message.toLowerCase().includes('invalid')) {
+            break;
+          }
+        } else if (data?.session) {
+          sessionData = data;
+          lastError = null;
+          break;
+        }
+      }
+
+      if (lastError) throw lastError;
+      
+      if (sessionData?.session) {
         window.location.reload();
       }
     } catch (err: any) {

@@ -115,6 +115,17 @@ export default function Home() {
     string | undefined
   >();
 
+  // Catch misplaced Supabase Auth Magic Link redirects to root
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("code")) {
+        const code = url.searchParams.get("code");
+        window.location.href = `/auth/callback?code=${code}`;
+      }
+    }
+  }, []);
+
   // Hero Background Parallax
   useEffect(() => {
     if (!bgRef.current) return;
