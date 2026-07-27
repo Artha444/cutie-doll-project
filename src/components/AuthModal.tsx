@@ -20,7 +20,6 @@ export default function AuthModal({
 }: AuthModalProps) {
   const [email, setEmail] = useState('');
   const [authStep, setAuthStep] = useState<'email' | 'otp'>('email');
-  const [otpCode, setOtpCode] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,7 +39,6 @@ export default function AuthModal({
       
       setEmail('');
       setAuthStep('email');
-      setOtpCode('');
       setErrorMsg(null);
       setInfoMsg(null);
       setCaptchaToken(null);
@@ -77,7 +75,7 @@ export default function AuthModal({
 
   const handleResendOtp = async () => {
     setErrorMsg(null);
-    setInfoMsg('Untuk alasan keamanan, silakan centang CAPTCHA kembali lalu klik "Lanjutkan" untuk mengirim ulang kode OTP.');
+    setInfoMsg('Untuk alasan keamanan, silakan centang CAPTCHA kembali lalu klik "Lanjutkan" untuk mengirim ulang Tautan Masuk (Link Login).');
     setAuthStep('email');
     if (captchaRef.current) {
       captchaRef.current.resetCaptcha();
@@ -167,9 +165,9 @@ export default function AuthModal({
       return;
     }
 
-    // BYPASS MODE UNTUK TESTING FORM OTP TANPA SPAM EMAIL
+    // BYPASS MODE UNTUK TESTING FORM TANPA SPAM EMAIL
     if (email.trim().toLowerCase().endsWith('@test.com')) {
-      setInfoMsg('MODE UJI COBA: Simulasi pengiriman kode OTP berhasil.');
+      setInfoMsg('MODE UJI COBA: Simulasi pengiriman Tautan Masuk berhasil.');
       setAuthStep('otp');
       setResendCountdown(60);
       return;
@@ -188,7 +186,7 @@ export default function AuthModal({
       });
       
       if (error) throw error;
-      setInfoMsg('Kode OTP dan tautan ajaib telah dikirim ke emailmu. Cek folder spam juga ya.');
+      setInfoMsg('Tautan untuk masuk telah dikirim ke emailmu. Cek folder spam juga ya.');
       setAuthStep('otp');
       setResendCountdown(60);
       
@@ -234,63 +232,7 @@ export default function AuthModal({
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
-    setInfoMsg(null);
-    setIsLoading(true);
 
-    try {
-      // Supabase has known bugs where 'type' can be strict depending on user state.
-      // We try the modern 'email' type first, then fallback to 'magiclink' and 'signup'
-      const typesToTry: ('email' | 'magiclink' | 'signup')[] = ['email', 'magiclink', 'signup'];
-      let lastError: any = null;
-      let sessionData = null;
-
-      for (const otpType of typesToTry) {
-        const { data, error } = await supabase.auth.verifyOtp({
-          email,
-          token: otpCode,
-          type: otpType,
-        });
-
-        if (error) {
-          lastError = error;
-          // If the error is NOT about the token being expired/invalid (e.g. rate limit), break immediately
-          if (!error.message.toLowerCase().includes('expired or is invalid') && !error.message.toLowerCase().includes('invalid')) {
-            break;
-          }
-        } else if (data?.session) {
-          sessionData = data;
-          lastError = null;
-          break;
-        }
-      }
-
-      if (lastError) throw lastError;
-      
-      if (sessionData?.session) {
-        window.location.reload();
-      }
-    } catch (err: any) {
-      console.error("OTP Verification Error:", err);
-      const rawMsg = err.message || '';
-      const lowerMsg = rawMsg.toLowerCase();
-      
-      let friendlyMsg = 'Kode verifikasi (OTP) salah, tidak lengkap, atau sudah kadaluarsa. Silakan periksa kembali email Anda.';
-      
-      if (lowerMsg.includes('expired')) {
-        friendlyMsg = 'Kode verifikasi sudah kadaluarsa. Silakan klik "Kirim ulang" untuk mendapatkan kode baru.';
-      } else if (lowerMsg.includes('invalid') || lowerMsg.includes('incorrect') || lowerMsg.includes('wrong') || lowerMsg.includes('token')) {
-        friendlyMsg = 'Kode verifikasi yang Anda masukkan salah. Silakan periksa kembali email Anda.';
-      } else if (rawMsg) {
-        friendlyMsg = rawMsg;
-      }
-      
-      setErrorMsg(friendlyMsg);
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -436,41 +378,21 @@ export default function AuthModal({
             </div>
           ) : (
             <div className="space-y-4">
-              <form onSubmit={handleVerifyOtp} className="space-y-4 animate-in fade-in slide-in-from-right-4">
-                <div className="space-y-4">
-                  {/* Title / Description */}
-                  <p className="text-xs sm:text-sm text-slate-600 text-center leading-relaxed">
-                    Masukkan kode verifikasi yang dikirim ke<br />
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
+                <div className="space-y-4 text-center">
+                  <div className="w-16 h-16 bg-pink-100 text-pink-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Mail className="w-8 h-8" />
+                  </div>
+                  <h3 className="font-serif text-xl font-bold text-slate-800">Cek Email Anda</h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Kami telah mengirimkan <strong>Tautan Masuk (Link Login)</strong> khusus ke<br />
                     <strong className="text-slate-800 font-bold break-all">{email}</strong>
                   </p>
-
-                  {/* Input Box */}
-                  <div className="relative">
-                    <input
-                      type="text"
-                      required
-                      maxLength={6}
-                      placeholder="Masukkan kode verifikasi"
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                      className="w-full py-3 px-4 text-center bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:bg-white focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all placeholder:text-slate-400"
-                    />
-                  </div>
+                  <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    Silakan buka email Anda (cek juga folder Spam) lalu klik tombol <strong>"Masuk Otomatis"</strong> yang ada di dalamnya.
+                  </p>
                 </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isLoading || isResending || otpCode.length !== 6}
-                  className="w-full py-3 bg-[#D48C70] hover:bg-[#C27D62] text-white rounded-2xl font-black text-xs sm:text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
-                >
-                  {isLoading ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <span>Verifikasi Alamat Email</span>
-                  )}
-                </button>
-              </form>
+              </div>
 
               {/* Action Links */}
               <div className="text-center space-y-2 mt-4 pt-2 border-t border-slate-100">
@@ -489,22 +411,7 @@ export default function AuthModal({
                     </button>
                   )}
                 </p>
-                <p className="text-[11px] sm:text-xs text-slate-500">
-                  Salah email?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthStep('email');
-                      setOtpCode('');
-                      setErrorMsg(null);
-                      setInfoMsg(null);
-                    }}
-                    disabled={isLoading || isResending}
-                    className="text-pink-500 hover:text-pink-600 font-black hover:underline bg-transparent border-none cursor-pointer p-0"
-                  >
-                    Ganti alamat email
-                  </button>
-                </p>
+
               </div>
 
               <p className="text-[11px] sm:text-xs text-slate-400 text-center leading-relaxed font-medium mt-6">

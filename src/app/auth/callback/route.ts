@@ -38,9 +38,12 @@ export async function GET(request: Request) {
       }
       return NextResponse.redirect(`${origin}${next}`);
     }
+    
+    // return the user to an error page with instructions
+    const errMsg = error?.message || 'unknown_error';
+    return NextResponse.redirect(`${origin}/?error=auth-callback-failed&details=${encodeURIComponent(errMsg)}`);
   }
 
-  // return the user to an error page with instructions
-  const errMsg = error?.message || 'unknown_error';
-  return NextResponse.redirect(`${origin}/?error=auth-callback-failed&details=${encodeURIComponent(errMsg)}`);
+  // If no code is present at all
+  return NextResponse.redirect(`${origin}/?error=invalid-auth-request`);
 }
