@@ -41,5 +41,6 @@ export async function GET(request: Request) {
   }
 
   // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/?error=auth-callback-failed`);
+  const errMsg = error?.message || 'unknown_error';
+  return NextResponse.redirect(`${origin}/?error=auth-callback-failed&details=${encodeURIComponent(errMsg)}`);
 }
