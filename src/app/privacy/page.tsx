@@ -1,6 +1,10 @@
+"use client";
+
 import React from 'react';
+import { useSiteSettings } from '@/context/SiteSettingsContext';
 
 export default function PrivacyPolicy() {
+  const { settings } = useSiteSettings();
   return (
     <div className="relative z-10 min-h-screen pt-28 sm:pt-32 pb-16 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-3xl mx-auto bg-white/95 backdrop-blur-md rounded-[2.5rem] shadow-xl p-8 sm:p-12 border border-pink-100/60">
@@ -100,8 +104,8 @@ export default function PrivacyPolicy() {
             <h2 className="text-lg font-bold text-slate-800 mb-2">8. Hubungi Kami</h2>
             <p>Jika Anda memiliki pertanyaan terkait Kebijakan Privasi ini atau ingin menggunakan hak penghapusan data Anda, silakan hubungi kami melalui:</p>
             <ul className="list-disc pl-5 mt-2 space-y-1">
-              <li><strong>WhatsApp:</strong> 0812-XXXX-XXXX (Ganti dengan nomor asli)</li>
-              <li><strong>Email:</strong> admin@simoengil.com</li>
+              <li><strong>WhatsApp:</strong> {settings.whatsappDisplay || settings.whatsappNumber}</li>
+              <li><strong>Email:</strong> {settings.email}</li>
             </ul>
           </section>
         </div>

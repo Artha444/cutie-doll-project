@@ -1,14 +1,19 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, X, Send, User, Minimize2, Maximize2, Package, Trash2, AlertTriangle, Headphones } from 'lucide-react';
+import { MessageSquare, X, Send, User, Minimize2, Maximize2, Tag, Trash2, AlertTriangle, Headphones, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthModal from './AuthModal';
 import { usePathname } from 'next/navigation';
+import { AdminMiniChatWidget } from './AdminMiniChatWidget';
 
 export function ChatWidget() {
   const pathname = usePathname();
+  const isProductPage = pathname?.startsWith('/product/') ?? false;
+  const isCartPage = pathname === '/cart';
+  const hasBottomBar = isProductPage || isCartPage;
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
@@ -21,6 +26,7 @@ export function ChatWidget() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [sendError, setSendError] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isAdminTyping, setIsAdminTyping] = useState(false);
   const [showProductMenu, setShowProductMenu] = useState(false);
   const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
   const [attachedProduct, setAttachedProduct] = useState<any | null>(null);
@@ -30,7 +36,10 @@ export function ChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingChannelRef = useRef<any>(null);
   const isOpenRef = useRef(isOpen);
+  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
     isOpenRef.current = isOpen;
@@ -57,20 +66,35 @@ export function ChatWidget() {
 
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session && session.user?.user_metadata?.role !== 'admin') {
-        setUser(session.user);
-        setSessionId(session.user.id);
+      let currentUser = session?.user || null;
+      if (session) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) currentUser = user;
+      }
+      if (currentUser?.user_metadata?.role === 'admin') {
+        setIsAdmin(true);
+      } else if (currentUser) {
+        setIsAdmin(false);
+        setUser(currentUser);
+        setSessionId(currentUser.id);
       } else {
+        setIsAdmin(false);
+        setUser(null);
         initAnonSession();
       }
     };
     checkAuth();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && session.user?.user_metadata?.role !== 'admin') {
-        setUser(session.user);
-        setSessionId(session.user.id);
+      const currentUser = session?.user || null;
+      if (currentUser?.user_metadata?.role === 'admin') {
+        setIsAdmin(true);
+      } else if (currentUser) {
+        setIsAdmin(false);
+        setUser(currentUser);
+        setSessionId(currentUser.id);
       } else {
+        setIsAdmin(false);
         setUser(null);
         initAnonSession();
       }
@@ -79,11 +103,16 @@ export function ChatWidget() {
     const handleNavbarInteraction = () => {
       if (isOpenRef.current) setIsOpen(false);
     };
+    const handleOpenChat = () => {
+      setIsOpen(true);
+    };
     window.addEventListener('navbar_interaction', handleNavbarInteraction);
+    window.addEventListener('open_chat_widget', handleOpenChat);
 
     return () => {
       authListener?.subscription?.unsubscribe();
       window.removeEventListener('navbar_interaction', handleNavbarInteraction);
+      window.removeEventListener('open_chat_widget', handleOpenChat);
     };
   }, []);
 
@@ -96,6 +125,9 @@ export function ChatWidget() {
   const fetchMessages = useCallback(async (pid: string, offset = 0, limit = 50) => {
     try {
       const res = await fetch(`/api/chat?product_id=${pid}&offset=${offset}&limit=${limit}`);
+      if (!res.ok) return;
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) return;
       const result = await res.json();
       if (result.success && Array.isArray(result.data)) {
         if (offset === 0) {
@@ -133,6 +165,37 @@ export function ChatWidget() {
   useEffect(() => {
     if (!sessionId) return;
 
+    // Typing Broadcast Subscription
+    typingChannelRef.current = supabase.channel(`typing:${sessionId}`, {
+      config: { broadcast: { ack: false } }
+    });
+
+    typingChannelRef.current
+      .on('broadcast', { event: 'typing' }, (payload: any) => {
+        if (payload.payload.role === 'ADMIN') {
+          setIsAdminTyping(payload.payload.isTyping);
+        }
+      })
+      .on('broadcast', { event: 'read_receipt' }, (payload: any) => {
+        if (payload.payload.role === 'ADMIN') {
+          setMessages(prev => prev.map(m => m.sender_role === 'USER' ? { ...m, is_read: true } : m));
+        }
+      })
+      .subscribe((status: string) => {
+        if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
+          if (isOpenRef.current) {
+            typingChannelRef.current.send({
+              type: 'broadcast',
+              event: 'read_receipt',
+              payload: { role: 'USER' }
+            }).catch(console.warn);
+          }
+        } else {
+          isSubscribedRef.current = false;
+        }
+      });
+
     setIsLoading(true);
     fetchMessages(sessionId).finally(() => setIsLoading(false));
 
@@ -142,15 +205,18 @@ export function ChatWidget() {
         event: '*',
         schema: 'public',
         table: 'messages',
-        filter: `product_id=eq.${sessionId}`
       }, (payload) => {
         if (payload.eventType === 'INSERT') {
           const newMsg = payload.new;
+          if (newMsg.product_id && newMsg.product_id !== sessionId) return;
           setMessages(prev => {
             if (prev.some(m => m.id === newMsg.id)) return prev;
             const tempIndex = prev.findIndex(m => String(m.id).startsWith('temp-') && m.content === newMsg.content);
             if (tempIndex !== -1) {
               const next = [...prev];
+              if (next[tempIndex].is_read) {
+                newMsg.is_read = true;
+              }
               next[tempIndex] = newMsg;
               return next;
             }
@@ -166,11 +232,19 @@ export function ChatWidget() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'mark_read', product_id: sessionId, role_to_mark: 'ADMIN' })
               }).catch(console.warn);
+
+              if (typingChannelRef.current && isSubscribedRef.current) {
+                typingChannelRef.current.send({
+                  type: 'broadcast',
+                  event: 'read_receipt',
+                  payload: { role: 'USER' }
+                }).catch(console.warn);
+              }
             }
           }
         } else if (payload.eventType === 'UPDATE') {
           const updatedMsg = payload.new;
-          setMessages(prev => prev.map(m => m.id === updatedMsg.id ? updatedMsg : m));
+          setMessages(prev => prev.map(m => m.id === updatedMsg.id ? { ...m, ...updatedMsg } : m));
         }
       })
       .subscribe();
@@ -181,6 +255,7 @@ export function ChatWidget() {
 
     return () => {
       channel.unsubscribe();
+      if (typingChannelRef.current) supabase.removeChannel(typingChannelRef.current);
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [sessionId, fetchMessages]);
@@ -204,6 +279,15 @@ export function ChatWidget() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'mark_read', product_id: sessionId, role_to_mark: 'ADMIN' })
       }).catch(console.warn);
+
+      // Broadcast read receipt instantly to Admin
+      if (typingChannelRef.current && isSubscribedRef.current) {
+        typingChannelRef.current.send({
+          type: 'broadcast',
+          event: 'read_receipt',
+          payload: { role: 'USER' }
+        }).catch(console.warn);
+      }
     }
   }, [isOpen, sessionId]);
 
@@ -287,6 +371,29 @@ export function ChatWidget() {
     }
   };
 
+  const handleTypingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    
+    if (typingChannelRef.current && sessionId) {
+      typingChannelRef.current.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { role: 'USER', isTyping: true }
+      }).catch(console.warn);
+
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        if (typingChannelRef.current) {
+          typingChannelRef.current.send({
+            type: 'broadcast',
+            event: 'typing',
+            payload: { role: 'USER', isTyping: false }
+          }).catch(console.warn);
+        }
+      }, 2000);
+    }
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!newMessage.trim() && !attachedProduct) || !sessionId || isSending) return;
@@ -302,6 +409,15 @@ export function ChatWidget() {
     setAttachedProduct(null);
     setShowProductMenu(false);
     
+    // Stop typing indicator on send
+    if (typingChannelRef.current && sessionId) {
+      typingChannelRef.current.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { role: 'USER', isTyping: false }
+      }).catch(console.warn);
+    }
+
     // Optimistic UI Update
     const optimisticMsg = {
       id: 'temp-' + Date.now(),
@@ -330,10 +446,15 @@ export function ChatWidget() {
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
+        const contentType = res.headers.get('content-type');
+        const errData = contentType && contentType.includes('application/json') ? await res.json().catch(() => ({})) : {};
         throw new Error(errData.error || 'Gagal mengirim pesan');
       }
       
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Respons server tidak valid');
+      }
       const { data } = await res.json();
       if (data) {
         setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data : m));
@@ -351,11 +472,17 @@ export function ChatWidget() {
     return null;
   }
 
+  if (isAdmin) {
+    return <AdminMiniChatWidget />;
+  }
+
   return (
     <>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 p-4 rounded-full shadow-2xl transition-all z-50 hover:scale-110 active:scale-95 cursor-pointer ${
+        className={`fixed right-6 p-4 rounded-full shadow-2xl transition-all z-50 hover:scale-110 active:scale-95 cursor-pointer ${
+          hasBottomBar ? 'bottom-24 lg:bottom-6' : 'bottom-6'
+        } ${
           isOpen
             ? 'bg-slate-800 text-white hover:bg-slate-700'
             : 'bg-gradient-to-br from-pink-500 to-pink-600 text-white hover:from-pink-600 hover:to-pink-700'
@@ -388,7 +515,7 @@ export function ChatWidget() {
             className={`fixed bg-white shadow-2xl z-50 flex flex-col overflow-hidden origin-bottom-right will-change-transform ${
               isExpanded
                 ? 'inset-0 w-full h-full rounded-none border-0 sm:border sm:border-slate-100 sm:top-32 sm:bottom-28 sm:h-auto sm:right-6 sm:left-auto sm:w-[400px] lg:w-[50vw] sm:rounded-3xl'
-                : 'bottom-24 right-6 w-[calc(100vw-48px)] sm:w-[400px] rounded-3xl border border-slate-100'
+                : 'right-6 bottom-24 w-[calc(100vw-48px)] sm:w-[400px] rounded-3xl border border-slate-100'
             }`}
             style={!isExpanded ? { height: '540px', maxHeight: '75vh' } : {}}
           >
@@ -437,9 +564,9 @@ export function ChatWidget() {
           )}
 
           <div className="flex flex-col items-start">
-            <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-tl-sm text-xs bg-white border border-slate-200 text-slate-700 shadow-sm">
-              <p className="font-semibold text-pink-600 mb-1">Halo, {user?.user_metadata?.full_name?.split(' ')[0] || 'kak'}! 👋</p>
-              <p>Ada yang bisa kami bantu? Tanya stok, detail boneka, atau pesanan di sini ya 😊</p>
+            <div className="max-w-[85%] px-4 py-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm">
+              <p className="font-semibold text-pink-600 mb-1">Halo, {user?.user_metadata?.full_name?.split(' ')[0] || 'kak'}!</p>
+              <p>Ada yang bisa kami bantu? Tanya stok, detail boneka, atau pesanan di sini ya.</p>
             </div>
           </div>
 
@@ -464,15 +591,42 @@ export function ChatWidget() {
             </div>
           )}
 
-          {messages.filter(m => m.sender_role !== 'SYSTEM').map((msg, idx) => (
-            <div key={msg.id || idx} className={`flex flex-col ${msg.sender_role === 'USER' ? 'items-end' : 'items-start'}`}>
-              <div
-                className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-xs leading-relaxed shadow-sm ${
-                  msg.sender_role === 'USER'
-                    ? 'bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-tr-sm'
-                    : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm'
-                }`}
-              >
+          {(() => {
+            let lastDateStr = '';
+            const todayStr = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            return messages.filter(m => m.sender_role !== 'SYSTEM').map((msg, idx) => {
+              const msgDate = new Date(msg.created_at);
+              const dateStr = msgDate.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+              
+              let displayDate = dateStr;
+              if (dateStr === todayStr) displayDate = 'Hari ini';
+              else if (dateStr === yesterdayStr) displayDate = 'Kemarin';
+
+              const showSeparator = dateStr !== lastDateStr;
+              lastDateStr = dateStr;
+
+              return (
+                <React.Fragment key={msg.id || idx}>
+                  {showSeparator && (
+                    <div className="flex justify-center my-3 w-full">
+                      <span className="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-bold rounded-full shadow-sm">
+                        {displayDate}
+                      </span>
+                    </div>
+                  )}
+                  <div className={`flex w-full gap-2 items-end ${msg.sender_role === 'USER' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`flex flex-col ${msg.sender_role === 'USER' ? 'items-end' : 'items-start'}`}>
+                      <div
+                        className={`max-w-[240px] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                          msg.sender_role === 'USER'
+                            ? 'bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-br-none'
+                            : 'bg-white border border-slate-200 text-slate-700 rounded-bl-none'
+                        }`}
+                      >
                 {msg.content.startsWith('[PRODUCT|') ? (
                   (() => {
                     const [prodStr, textStr] = msg.content.split(':::');
@@ -503,20 +657,37 @@ export function ChatWidget() {
                   <p className="break-words">{msg.content}</p>
                 )}
               </div>
-              <span className="text-[9px] text-slate-400 mt-1 px-1">
-                {new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                {msg.sender_role === 'USER' && (
-                  <span className="ml-1 font-bold">
-                    {msg.is_read ? (
-                      <span className="text-blue-500">✓✓</span>
-                    ) : (
-                      <span>✓</span>
-                    )}
-                  </span>
-                )}
-              </span>
+                      <span className="text-[10px] text-slate-400 mt-1 px-1 flex items-center gap-1">
+                        {new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                        {msg.sender_role === 'USER' && (
+                          <span className="font-bold inline-flex items-center">
+                            {String(msg.id).startsWith('temp-') ? (
+                              <Clock className="w-3 h-3 text-slate-400 animate-pulse" />
+                            ) : msg.is_read ? (
+                              <span className="text-blue-500">✓✓</span>
+                            ) : (
+                              <span>✓</span>
+                            )}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </React.Fragment>
+              );
+            });
+          })()}
+
+          {isAdminTyping && (
+            <div className="flex items-center gap-2 text-[10px] text-slate-400 font-semibold mt-2 px-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex gap-1 bg-white border border-slate-200 shadow-sm px-3 py-2 rounded-2xl rounded-bl-sm">
+                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              <span>CS Simoengil sedang mengetik...</span>
             </div>
-          ))}
+          )}
 
           <div ref={messagesEndRef} />
         </div>
@@ -586,29 +757,29 @@ export function ChatWidget() {
               <button
                 type="button"
                 onClick={() => setShowProductMenu(!showProductMenu)}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 rounded-xl transition-all shrink-0 cursor-pointer flex items-center justify-center"
-                title="Kirim Produk"
+                className="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 rounded-xl transition-all shrink-0 cursor-pointer flex items-center justify-center"
+                title="Lampirkan Produk Katalog"
               >
-                <Package className="w-4 h-4" />
+                <Tag className="w-5 h-5" />
               </button>
               <input
                 ref={inputRef}
               type="text"
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={handleTypingChange}
               placeholder={attachedProduct ? "Ketik pesan untuk produk ini..." : "Tulis pesan..."}
               disabled={isSending}
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all disabled:opacity-50"
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={(!newMessage.trim() && !attachedProduct) || isSending}
-              className="p-2.5 bg-gradient-to-br from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 disabled:from-slate-200 disabled:to-slate-200 text-white disabled:text-slate-400 rounded-xl transition-all shrink-0 cursor-pointer active:scale-95"
+              className="p-3 bg-gradient-to-br from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 disabled:from-slate-200 disabled:to-slate-200 text-white disabled:text-slate-400 rounded-xl transition-all shrink-0 cursor-pointer active:scale-95 flex items-center justify-center"
             >
               {isSending ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                <Send className="w-4 h-4" />
+                <Send className="w-5 h-5" />
               )}
             </button>
           </div>

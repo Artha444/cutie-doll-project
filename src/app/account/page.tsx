@@ -28,6 +28,7 @@ import {
   Loader2,
   Camera,
   ChevronRight,
+  Heart,
 } from "lucide-react";
 import { WishlistDrawer } from "@/components/WishlistDrawer";
 
@@ -42,6 +43,7 @@ export default function UserDashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [favCount, setFavCount] = useState(0);
 
   const handleUpdateCartQuantity = (cartItemId: string, delta: number) => {
     const updated = cart.map((item) => {
@@ -179,6 +181,11 @@ export default function UserDashboard() {
         console.error("Failed to load cart", e);
       }
     }
+
+    try {
+      const favs = JSON.parse(localStorage.getItem("simoengil_favorites") || "[]");
+      setFavCount(favs.length);
+    } catch (e) {}
 
     return () => {
       authListener?.subscription?.unsubscribe();
@@ -443,6 +450,23 @@ export default function UserDashboard() {
               </div>
               <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
             </div>
+
+            <Link href="/favorites" className="flex items-center justify-between p-4 sm:p-5 hover:bg-rose-50/50 rounded-3xl transition-all group cursor-pointer border border-transparent hover:border-rose-100/50">
+              <div className="flex items-center gap-4 sm:gap-6">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-rose-100 text-rose-500 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Heart className="w-5 h-5 sm:w-6 sm:h-6 fill-rose-500" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-800 sm:text-lg">Favorit Saya</span>
+                  {favCount > 0 && (
+                    <span className="bg-rose-500 text-white text-xs font-black px-2 py-0.5 rounded-full shadow-sm">
+                      {favCount}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-rose-400 transition-colors" />
+            </Link>
 
             <Link href="/account/settings/security" className="flex items-center justify-between p-4 sm:p-5 hover:bg-orange-50/50 rounded-3xl transition-all group cursor-pointer border border-transparent hover:border-orange-100/50">
               <div className="flex items-center gap-4 sm:gap-6">

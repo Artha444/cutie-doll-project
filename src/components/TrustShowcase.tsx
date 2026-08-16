@@ -27,13 +27,13 @@ const DEFAULT_TRUST_ITEMS: TrustItem[] = [
     image: "/images/4-Ruler.jpeg",
     title: "Detail Rapih & Kuat",
     description:
-      "Ukuran boneka flanel kami memang mungil, tapi detailnya nggak sembarangan. Setiap pola diukur presisi supaya proporsinya pas dan jahitannya tetap kuat meski sering dipeluk.",
+      "Ukuran boneka flanel kami mungil (10-20cm), tapi detailnya nggak sembarangan. Setiap pola diukur dan dijahit presisi supaya proporsinya pas serta kuat sebagai kado maupun pajangan estetik.",
   },
   {
     image: "/images/1-Cardboard.jpeg",
     title: "Packing Aman",
     description:
-      "Boneka diisi dakron premium yang empuk dan padat, lalu dikemas rapat dengan kardus tebal supaya aman sampai tujuan tanpa penyok, kotor, atau rusak di jalan.",
+      "Boneka flanel diisi dacron premium yang padat anti-kempes, lalu dikemas rapat dengan kardus tebal supaya aman sampai tujuan tanpa penyok atau rusak di jalan.",
   },
   {
     image: "/images/2-Truck.jpeg",
@@ -77,6 +77,27 @@ export default function TrustShowcase({
     container.scrollTo({ left: scrollLeft, behavior: "smooth" });
   };
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const scrollCenter = container.scrollLeft + container.clientWidth / 2;
+    let closestIndex = 0;
+    let minDistance = Infinity;
+
+    Array.from(container.children).forEach((child, index) => {
+      const childElement = child as HTMLElement;
+      const childCenter = childElement.offsetLeft + childElement.clientWidth / 2;
+      const distance = Math.abs(childCenter - scrollCenter);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = index;
+      }
+    });
+
+    if (closestIndex !== activeIndex) {
+      setActiveIndex(closestIndex);
+    }
+  };
+
   const handleFieldSave = async (newValue: string) => {
     if (!editingField) return;
     const updated = items.map((item, i) =>
@@ -97,7 +118,7 @@ export default function TrustShowcase({
     : "";
 
   return (
-    <div className="relative z-10 w-full bg-[#FCE6CB] py-20">
+    <div className="relative z-10 w-full bg-[#FCE6CB] pb-20 pt-4">
 
       {/* Edit Modal portal */}
       {isMounted && editingField && (
@@ -112,12 +133,9 @@ export default function TrustShowcase({
       <div className="w-full overflow-hidden">
         <div
           id="trust-scroll"
-          className="flex snap-x snap-mandatory scroll-smooth overflow-x-auto scrollbar-none"
-          style={{
-            gap: `${GAP}px`,
-            paddingLeft: "5vw",
-            paddingRight: "5vw",
-          }}
+          className="flex snap-x snap-mandatory scroll-smooth overflow-x-auto scrollbar-none px-[5vw] lg:px-[calc(50vw-600px)]"
+          style={{ gap: `${GAP}px` }}
+          onScroll={handleScroll}
         >
           {items.map((item, i) => (
             <div
@@ -128,7 +146,7 @@ export default function TrustShowcase({
               <div
                 className={`
                   bg-[#FFFBF3] rounded-[1rem] sm:rounded-[2rem]
-                  grid grid-cols-1 md:grid-cols-2
+                  grid grid-cols-1 md:grid-cols-2 md:min-h-[550px]
                   transition-all duration-500 ease-out h-full
                   ${
                     i === activeIndex
@@ -139,7 +157,7 @@ export default function TrustShowcase({
               >
                 {/* Image */}
                 <div className="p-4 sm:p-10 flex items-center justify-center">
-                  <div className="w-full h-full rounded-2xl overflow-hidden aspect-[4/3] md:min-h-[400px]">
+                  <div className="w-full h-full rounded-2xl overflow-hidden aspect-[4/3] md:aspect-auto">
                     <img
                       src={item.image}
                       alt={item.title}

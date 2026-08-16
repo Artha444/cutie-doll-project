@@ -75,7 +75,7 @@ export default function TermsOfService() {
 
           <section id="tanggung-jawab" className="scroll-mt-32 sm:scroll-mt-36">
             <h2 className="text-lg font-bold text-slate-800 mb-2">6. Batasan Tanggung Jawab</h2>
-            <p>Simoengil selalu memastikan kualitas produk aman dan sesuai deskripsi. Namun, kami tidak bertanggung jawab atas cedera, kerusakan, atau kerugian yang timbul akibat penyalahgunaan produk (misalnya: diberikan kepada bayi di bawah umur rekomendasi tanpa pengawasan, dimakan, atau dicuci dengan bahan kimia berbahaya).</p>
+            <p>Simoengil selalu memastikan kualitas produk rapi dan sesuai deskripsi. Namun, kami tidak bertanggung jawab atas kerusakan atau kerugian yang timbul akibat penyalahgunaan produk (misalnya: diberikan kepada balita tanpa pengawasan karena produk bukan dikhususkan untuk balita, dimakan, atau dicuci basah sehingga merusak tekstur kain flanel).</p>
           </section>
 
           <section id="hukum" className="scroll-mt-32 sm:scroll-mt-36">

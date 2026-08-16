@@ -9,9 +9,12 @@ export default function MainLayoutWrapper({ children }: { children: React.ReactN
   const isProduct = pathname.startsWith('/product/');
   const isHome = pathname === '/';
   const isAccount = pathname.startsWith('/account');
+  const isCatalog = pathname === '/products';
+  const isCart = pathname === '/cart';
+  const isCheckout = pathname === '/checkout';
 
   return (
-    <div className={`relative flex-1 flex flex-col ${isAdmin || isProduct || isHome || isAccount ? '' : 'pt-24'}`}>
+    <div className={`relative flex-1 flex flex-col ${isAdmin || isProduct || isHome || isAccount || isCatalog || isCart || isCheckout ? '' : 'pt-24'}`}>
       {children}
     </div>
   );

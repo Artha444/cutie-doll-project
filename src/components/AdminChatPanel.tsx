@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Send, User, Search, RefreshCw, ArrowLeft, Circle, Package, X, Trash2, AlertTriangle } from 'lucide-react';
+import { MessageSquare, Send, User, Search, RefreshCw, ArrowLeft, Circle, Tag, X, Trash2, AlertTriangle, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface Conversation {
@@ -52,11 +52,16 @@ export default function AdminChatPanel() {
   const [showProductMenu, setShowProductMenu] = useState(false);
   const [attachedProduct, setAttachedProduct] = useState<any | null>(null);
   const [productSearch, setProductSearch] = useState('');
+  const [isUserTyping, setIsUserTyping] = useState(false);
   
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingChannelRef = useRef<any>(null);
+  const selectedUserRef = useRef<Conversation | null>(null);
+  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
     const fetchCatalogProducts = async () => {
@@ -74,6 +79,9 @@ export default function AdminChatPanel() {
     if (showLoading) setIsLoading(true);
     try {
       const res = await fetch('/api/chat?action=conversations');
+      if (!res.ok) return;
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) return;
       const result = await res.json();
       if (result.success) {
         setConversations(result.data);
@@ -112,17 +120,18 @@ export default function AdminChatPanel() {
   const fetchMessages = useCallback(async (pid: string, offset = 0, limit = 50) => {
     try {
       const res = await fetch(`/api/chat?product_id=${pid}&offset=${offset}&limit=${limit}`);
+      if (!res.ok) return;
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) return;
       const result = await res.json();
       if (result.success) {
         if (offset === 0) {
           setMessages(prev => {
-            // Merge carefully to avoid deleting optimistic temp- messages
             const existingTemp = prev.filter(m => String(m.id).startsWith('temp-'));
             const newMsgs = result.data;
             return [...newMsgs, ...existingTemp];
           });
           
-          // Mark as read automatically if there are unread messages from USER
           const hasUnread = result.data.some((m: any) => m.sender_role === 'USER' && !m.is_read);
           if (hasUnread) {
             fetch('/api/chat', {
@@ -130,13 +139,19 @@ export default function AdminChatPanel() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'mark_read', product_id: pid })
             }).catch(console.warn);
+
+            if (typingChannelRef.current && isSubscribedRef.current) {
+              typingChannelRef.current.send({
+                type: 'broadcast',
+                event: 'read_receipt',
+                payload: { role: 'ADMIN' }
+              }).catch(console.warn);
+            }
             
-            // Optimistically update conversations state
             setConversations(prev => prev.map(c => c.user_id === pid ? { ...c, unread: 0 } : c));
           }
         } else {
           setMessages(prev => {
-            // filter duplicates just in case
             const existingIds = new Set(prev.map(m => m.id));
             const newMsgs = result.data.filter((m: any) => !existingIds.has(m.id));
             return [...newMsgs, ...prev];
@@ -175,77 +190,138 @@ export default function AdminChatPanel() {
   };
 
   useEffect(() => {
-    if (!selectedUser) return;
+    if (selectedUser) {
+      setMessages([]);
+      setHasMore(true);
+      fetchMessages(selectedUser.user_id, 0);
+      
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 200);
 
-    fetchMessages(selectedUser.user_id);
+      // 1. Realtime postgres changes for messages
+      const msgChannel = supabase
+        .channel(`chat:admin:${selectedUser.user_id}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+        }, (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newMsg = payload.new as any;
+            if (newMsg.product_id && newMsg.product_id !== selectedUser.user_id) return;
+            setMessages(prev => {
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              const tempIndex = prev.findIndex(m => String(m.id).startsWith('temp-') && m.content === newMsg.content);
+              if (tempIndex !== -1) {
+                const next = [...prev];
+                if (next[tempIndex].is_read) {
+                  newMsg.is_read = true;
+                }
+                next[tempIndex] = newMsg;
+                return next;
+              }
+              return [...prev, newMsg];
+            });
 
-    const channel = supabase
-      .channel(`chat:admin:${selectedUser.user_id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'messages',
-        filter: `product_id=eq.${selectedUser.user_id}`
-      }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          const newMsg = payload.new;
-          setMessages(prev => {
-            if (prev.some(m => m.id === newMsg.id)) return prev;
-            const tempIndex = prev.findIndex(m => String(m.id).startsWith('temp-') && m.content === newMsg.content);
-            if (tempIndex !== -1) {
-              const next = [...prev];
-              next[tempIndex] = newMsg;
-              return next;
+            if (newMsg.sender_role === 'USER') {
+              fetch('/api/chat', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'mark_read', product_id: selectedUser.user_id })
+              }).catch(console.warn);
+
+              if (typingChannelRef.current && isSubscribedRef.current) {
+                typingChannelRef.current.send({
+                  type: 'broadcast',
+                  event: 'read_receipt',
+                  payload: { role: 'ADMIN' }
+                }).catch(console.warn);
+              }
             }
-            return [...prev, newMsg];
-          });
-
-          // Mark as read immediately if it's from user and we are viewing them
-          if (newMsg.sender_role === 'USER') {
-            fetch('/api/chat', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'mark_read', product_id: selectedUser.user_id })
-            }).catch(console.warn);
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedMsg = payload.new as any;
+            setMessages(prev => prev.map(m => m.id === updatedMsg.id ? { ...m, ...updatedMsg } : m));
           }
-        } else if (payload.eventType === 'UPDATE') {
-          const updatedMsg = payload.new;
-          setMessages(prev => prev.map(m => m.id === updatedMsg.id ? updatedMsg : m));
+        })
+        .subscribe();
+
+      // 2. Typing and read_receipt broadcast channel
+      typingChannelRef.current = supabase.channel(`typing:${selectedUser.user_id}`, {
+        config: { broadcast: { ack: false } }
+      });
+
+      typingChannelRef.current
+        .on('broadcast', { event: 'typing' }, (payload: any) => {
+          if (payload.payload.role === 'USER') {
+            setIsUserTyping(payload.payload.isTyping);
+          }
+        })
+        .on('broadcast', { event: 'read_receipt' }, (payload: any) => {
+          if (payload.payload.role === 'USER') {
+            setMessages(prev => prev.map(m => m.sender_role === 'ADMIN' ? { ...m, is_read: true } : m));
+          }
+        })
+        .subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            isSubscribedRef.current = true;
+            // Send read receipt to User instantly on subscribe
+            typingChannelRef.current.send({
+              type: 'broadcast',
+              event: 'read_receipt',
+              payload: { role: 'ADMIN' }
+            }).catch(console.warn);
+          } else {
+            isSubscribedRef.current = false;
+          }
+        });
+
+      return () => {
+        supabase.removeChannel(msgChannel);
+        if (typingChannelRef.current) {
+          supabase.removeChannel(typingChannelRef.current);
+          typingChannelRef.current = null;
         }
-      })
-      .subscribe();
-
-    // Mark existing unread messages as read
-    fetch('/api/chat', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'mark_read', product_id: selectedUser.user_id })
-    }).catch(console.warn);
-
-    // Optimistically clear unread badge for this user
-    setConversations(prev => prev.map(c => c.user_id === selectedUser.user_id ? { ...c, unread: 0 } : c));
-
-    const pollInterval = setInterval(() => {
-      fetchMessages(selectedUser.user_id);
-    }, 5000);
-
-    return () => {
-      supabase.removeChannel(channel);
-      clearInterval(pollInterval);
-    };
+      };
+    } else {
+      setMessages([]);
+      if (typingChannelRef.current) {
+        supabase.removeChannel(typingChannelRef.current);
+        typingChannelRef.current = null;
+      }
+      setIsUserTyping(false);
+      isSubscribedRef.current = false;
+    }
   }, [selectedUser, fetchMessages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  useEffect(() => {
-    if (selectedUser) {
-      setTimeout(() => inputRef.current?.focus(), 200);
-    }
-  }, [selectedUser]);
+  const handleTypingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    
+    if (typingChannelRef.current && selectedUser) {
+      typingChannelRef.current.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { role: 'ADMIN', isTyping: true }
+      }).catch(console.warn);
 
-  const sendMessage = async (e: React.FormEvent) => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        if (typingChannelRef.current) {
+          typingChannelRef.current.send({
+            type: 'broadcast',
+            event: 'typing',
+            payload: { role: 'ADMIN', isTyping: false }
+          }).catch(console.warn);
+        }
+      }, 2000);
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!newMessage.trim() && !attachedProduct) || !selectedUser || isSending) return;
 
@@ -259,8 +335,15 @@ export default function AdminChatPanel() {
     setNewMessage('');
     setAttachedProduct(null);
     setShowProductMenu(false);
+
+    if (typingChannelRef.current && selectedUser) {
+      typingChannelRef.current.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { role: 'ADMIN', isTyping: false }
+      }).catch(console.warn);
+    }
     
-    // Optimistic UI
     const optimisticMsg = {
       id: 'temp-' + Date.now(),
       sender_role: 'ADMIN',
@@ -461,15 +544,42 @@ export default function AdminChatPanel() {
                   </button>
                 </div>
               )}
-              {messages.map((msg, idx) => (
-                <div key={msg.id || idx} className={`flex flex-col ${msg.sender_role === 'ADMIN' ? 'items-end' : 'items-start'}`}>
-                  <div
-                    className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-xs leading-relaxed shadow-sm ${
-                      msg.sender_role === 'ADMIN'
-                        ? 'bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-br-sm'
-                        : 'bg-white border border-slate-200 text-slate-700 rounded-bl-sm'
-                    }`}
-                  >
+              {(() => {
+                let lastDateStr = '';
+                const todayStr = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+
+                return messages.map((msg, idx) => {
+                  const msgDate = new Date(msg.created_at);
+                  const dateStr = msgDate.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+                  
+                  let displayDate = dateStr;
+                  if (dateStr === todayStr) displayDate = 'Hari ini';
+                  else if (dateStr === yesterdayStr) displayDate = 'Kemarin';
+
+                  const showSeparator = dateStr !== lastDateStr;
+                  lastDateStr = dateStr;
+
+                  return (
+                    <React.Fragment key={msg.id || idx}>
+                      {showSeparator && (
+                        <div className="flex justify-center my-4 w-full">
+                          <span className="px-3 py-1 bg-slate-200 text-slate-500 text-[10px] font-bold rounded-full">
+                            {displayDate}
+                          </span>
+                        </div>
+                      )}
+                      <div className={`flex w-full gap-2 items-end ${msg.sender_role === 'ADMIN' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`flex flex-col ${msg.sender_role === 'ADMIN' ? 'items-end' : 'items-start'}`}>
+                          <div
+                            className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                              msg.sender_role === 'ADMIN'
+                                ? 'bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-br-none'
+                                : 'bg-white border border-slate-200 text-slate-700 rounded-bl-none'
+                            }`}
+                          >
                     {msg.content.startsWith('[PRODUCT|') ? (
                       (() => {
                         const [prodStr, textStr] = msg.content.split(':::');
@@ -500,11 +610,32 @@ export default function AdminChatPanel() {
                       <p className="break-words">{msg.content}</p>
                     )}
                   </div>
-                  <span className="text-[9px] text-slate-400 mt-1 px-1">
-                    {new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
+                    <span className="text-[10px] text-slate-400 mt-1 px-1 flex items-center gap-1">
+                      {new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                      {msg.sender_role === 'ADMIN' && String(msg.id).startsWith('temp-') && (
+                        <span className="font-bold inline-flex items-center">
+                          <Clock className="w-3 h-3 text-slate-400 animate-pulse" />
+                        </span>
+                      )}
+                    </span>
+                  </div>
                 </div>
-              ))}
+                    </React.Fragment>
+                  );
+                });
+              })()}
+
+              {isUserTyping && selectedUser && (
+                <div className="flex items-center gap-2 text-[10px] text-slate-400 font-semibold mt-2 px-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex gap-1 bg-white border border-slate-200 shadow-sm px-3 py-2 rounded-2xl rounded-bl-sm">
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <span>{selectedUser.user_name} sedang mengetik...</span>
+                </div>
+              )}
+
               <div ref={messagesEndRef} />
             </div>
 
@@ -567,7 +698,7 @@ export default function AdminChatPanel() {
               </div>
             )}
 
-            <form onSubmit={sendMessage} className="p-4 bg-white border-t-0 flex flex-col gap-1 shrink-0">
+            <form onSubmit={handleSendMessage} className="p-4 bg-white border-t-0 flex flex-col gap-1 shrink-0">
                 {sendError && (
                   <p className="text-[10px] text-red-500 font-semibold px-1">{sendError}</p>
                 )}
@@ -575,31 +706,30 @@ export default function AdminChatPanel() {
                   <button
                     type="button"
                     onClick={() => setShowProductMenu(!showProductMenu)}
-                    className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 rounded-xl transition-all shrink-0 cursor-pointer flex items-center justify-center"
-                    title="Kirim Produk"
+                    className="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 rounded-xl transition-all shrink-0 cursor-pointer flex items-center justify-center"
+                    title="Lampirkan Produk Katalog"
                   >
-                    <Package className="w-4 h-4" />
+                    <Tag className="w-5 h-5" />
                   </button>
                   <input
                   ref={inputRef}
                   type="text"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={handleTypingChange}
                   placeholder={attachedProduct ? "Ketik pesan untuk produk ini..." : "Ketik balasan..."}
                   disabled={isSending}
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all disabled:opacity-50"
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all disabled:opacity-50"
                 />
                 <button
                   type="submit"
                   disabled={(!newMessage.trim() && !attachedProduct) || isSending}
-                  className="px-4 py-2.5 bg-gradient-to-br from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 disabled:from-slate-200 disabled:to-slate-200 text-white disabled:text-slate-400 rounded-xl font-bold text-xs transition-all shrink-0 cursor-pointer active:scale-95 flex items-center gap-2"
+                  className="px-5 py-3 bg-gradient-to-br from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 disabled:from-slate-200 disabled:to-slate-200 text-white disabled:text-slate-400 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer active:scale-95 flex items-center gap-2"
                 >
                   {isSending ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <Send className="w-4 h-4" />
+                    <Send className="w-5 h-5" />
                   )}
-                  <span className="hidden sm:inline">Kirim</span>
                 </button>
               </div>
             </form>

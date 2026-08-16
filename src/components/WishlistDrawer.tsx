@@ -137,10 +137,10 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                   {/* Remove Button (X) placed at top right */}
                   <button
                     onClick={() => onRemoveItem(item.cartItemId)}
-                    className="absolute top-3 right-3 p-1.5 rounded-full text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all cursor-pointer"
+                    className="absolute top-3 right-3 p-1.5 rounded-xl bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-200/60 transition-all duration-200 cursor-pointer shadow-xs hover:scale-105 active:scale-95 flex items-center justify-center"
                     aria-label="Hapus"
                   >
-                    <X className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
 
                   {/* Thumbnail */}
@@ -195,21 +195,24 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                         {formatIDR(item.selectedPrice)}
                       </p>
 
-                      <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-xs shrink-0">
+                      <div className="flex items-center bg-[#FFF8F3] border border-[#FCE6CB] rounded-xl p-1 shadow-xs gap-1 shrink-0">
                         <button
                           onClick={() => onUpdateQuantity(item.cartItemId, -1)}
-                          className="p-1.5 text-slate-500 hover:bg-[#FF8FB1] hover:text-white transition-colors cursor-pointer"
+                          disabled={item.quantity <= 1}
+                          className="w-7 h-7 flex items-center justify-center bg-amber-100/80 hover:bg-rose-500 text-amber-800 hover:text-white rounded-lg font-bold transition-all duration-200 disabled:opacity-40 disabled:hover:bg-amber-100/80 disabled:hover:text-amber-800 disabled:cursor-not-allowed cursor-pointer active:scale-90 shadow-xs"
+                          title="Kurangi"
                         >
-                          <Minus className="w-3.5 h-3.5" />
+                          <Minus className="w-3 h-3 stroke-[2.5]" />
                         </button>
-                        <span className="px-2.5 text-xs font-bold text-slate-700 min-w-[28px] text-center">
+                        <span className="px-2 text-xs font-black text-slate-800 min-w-[24px] text-center">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => onUpdateQuantity(item.cartItemId, 1)}
-                          className="p-1.5 text-slate-500 hover:bg-[#FF8FB1] hover:text-white transition-colors cursor-pointer"
+                          className="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-[#FF8FB1] to-pink-600 hover:from-pink-600 hover:to-rose-600 text-white rounded-lg font-bold transition-all duration-200 cursor-pointer active:scale-90 shadow-sm shadow-pink-400/30"
+                          title="Tambah"
                         >
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className="w-3 h-3 stroke-[2.5]" />
                         </button>
                       </div>
                     </div>

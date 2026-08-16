@@ -1,6 +1,7 @@
 export interface ProductType {
   name: string;
   image?: string;
+  icon?: string;
   extraPrice?: number;
 }
 
@@ -73,42 +74,43 @@ export const PRODUCTS: Product[] = [
     price: 89000,
     category: 'Boneka Beruang',
     image: '/images/plushie_teddy.png',
-    description: 'Boneka Teddy Bear klasik berwarna cokelat hangat dengan bulu super halus dan empuk. Sangat cocok menemani tidur Anda atau dijadikan kado manis untuk orang tersayang.',
+    description: 'Boneka beruang flanel klasik berwarna cokelat hangat hasil jahitan tangan rapi berukuran mungil (10-20cm). Sangat pas untuk kado ulang tahun, suvenir manis, maupun pajangan estetik di meja kerja.',
     rating: 4.9,
     reviewsCount: 142,
     shopeeLink: 'https://shopee.co.id',
     shopeePrice: 94000,
     specifications: {
-      material: '100% Premium Dacron Silikon Grade A & Bulu Rasfur Halus',
-      size: 'Tinggi 35 cm, Lebar 25 cm',
-      washing: 'Bisa dicuci dengan mesin (putaran lembut) atau cuci tangan',
-      safeForKids: true,
+      material: '100% Kain Flanel Premium & Isian Dacron Grade A',
+      size: 'Tinggi 15 cm, Lebar 10 cm (Range 10–20 cm)',
+      washing: 'Tidak disarankan dicuci basah (cukup bersihkan debu secara kering/dry wipe)',
+      safeForKids: false,
       types: [
         { name: "Cokelat Klasik", extraPrice: 0 }
       ],
       sizes: [
-        { name: "Medium (40cm)", extraPrice: 0 },
-        { name: "Jumbo (100cm)", extraPrice: 100000 }
+        { name: "Mini (10cm)", extraPrice: 0 },
+        { name: "Standard (15cm)", extraPrice: 15000 },
+        { name: "Maxi (20cm)", extraPrice: 35000 }
       ],
       features: [
-        { icon: "🪡", title: "Jahitan Super Kuat", description: "Metode double stitch pengerjaan manual oleh pengrajin lokal berlisensi." },
-        { icon: "🛡️", title: "Hypoallergenic", description: "Bulu halus tidak mudah rontok, debu tidak mengendap. Aman bagi alergi." },
-        { icon: "🧼", title: "Washable & Quick-dry", description: "Silikon dakron grade A tidak mudah menggumpal meskipun dicuci mesin berkali-kali." },
-        { icon: "🇮🇩", title: "100% Produk Lokal", description: "Mendukung peningkatan ekonomi pengrajin boneka lokal Indonesia." }
+        { icon: "🪡", title: "100% Jahit Tangan", description: "Pola dipotong dan dijahit manual penuh ketelitian untuk hasil rapi & presisi." },
+        { icon: "✨", title: "Kain Flanel & Dacron", description: "Menggunakan bahan flanel berkualitas dan isian dacron silikon murni anti-kempes." },
+        { icon: "🎁", title: "Ukuran Mungil 10–20cm", description: "Sangat cocok untuk kado ulang tahun, wisuda, gantungan kunci, maupun pajangan estetik." },
+        { icon: "🇮🇩", title: "100% Produk Lokal", description: "Karya handmade pengrajin lokal Indonesia dengan detail berkarakter." }
       ],
       soldCount: 520,
       testimonials: [
         {
           name: 'Ratih Ningsih',
           rating: 5,
-          message: 'Bulunya halus banget rasfur premium, jahitannya sangat rapi dan tebal. Isian dacronnya padat tapi tetap empuk banget dipeluk. Sangat rekomended buat anak-anak!',
+          message: 'Bahan flanelnya bagus, jahitannya sangat rapi dan detail. Isian dacronnya padat dan ukurannya mungil pas banget buat pajangan di meja belajar!',
           date: '12 Mei 2026',
           avatar: 'RN'
         },
         {
           name: 'Budi Santoso',
           rating: 5,
-          message: 'Beli untuk kado wisuda pacar, respon admin cepat dan dapet selempang kustom nama wisuda gratis. Packingnya rapi menggunakan box cantik dan pita pink manis.',
+          message: 'Beli untuk kado wisuda pacar, respon admin cepat dan dapet custom kemasan rapi. Worth the price banget buat kado spesial.',
           date: '04 Mei 2026',
           avatar: 'BS'
         }
@@ -122,28 +124,29 @@ export const PRODUCTS: Product[] = [
     price: 95000,
     category: 'Boneka Beruang',
     image: '/images/plushie_bunny.png',
-    description: 'Boneka kelinci lucu berwarna pink pastel dengan telinga panjang yang sangat lembut saat diraba. Didesain khusus agar nyaman dipeluk erat oleh si kecil maupun dewasa.',
+    description: 'Boneka kelinci flanel lucu berwarna pink pastel dengan telinga panjang bertekstur lembut. Didesain khusus dalam ukuran 10-20cm sebagai kado berkesan maupun pajangan kamar yang manis.',
     rating: 4.8,
     reviewsCount: 96,
     shopeeLink: 'https://shopee.co.id',
     shopeePrice: 99000,
     specifications: {
-      material: '100% Premium Dacron & Kain Velboa Super Lembut',
-      size: 'Tinggi 40 cm (ujung telinga ke kaki), Lebar 20 cm',
-      washing: 'Cuci tangan dengan air hangat hangat kuku dan sabun bayi',
-      safeForKids: true,
+      material: '100% Kain Flanel Premium & Isian Dacron Grade A',
+      size: 'Tinggi 18 cm, Lebar 11 cm (Range 10–20 cm)',
+      washing: 'Tidak disarankan dicuci basah (cukup bersihkan debu secara kering/dry wipe)',
+      safeForKids: false,
       types: [
         { name: "Pink Pastel", extraPrice: 0 }
       ],
       sizes: [
-        { name: "Medium (35cm)", extraPrice: 0 },
-        { name: "Jumbo (80cm)", extraPrice: 104000 }
+        { name: "Mini (12cm)", extraPrice: 0 },
+        { name: "Standard (16cm)", extraPrice: 15000 },
+        { name: "Maxi (20cm)", extraPrice: 35000 }
       ],
       features: [
-        { icon: "🪡", title: "Jahitan Super Kuat", description: "Metode double stitch pengerjaan manual oleh pengrajin lokal berlisensi." },
-        { icon: "🛡️", title: "Hypoallergenic", description: "Bulu halus tidak mudah rontok, debu tidak mengendap. Aman bagi alergi." },
-        { icon: "🧼", title: "Washable & Quick-dry", description: "Silikon dakron grade A tidak mudah menggumpal meskipun dicuci mesin berkali-kali." },
-        { icon: "🇮🇩", title: "100% Produk Lokal", description: "Mendukung peningkatan ekonomi pengrajin boneka lokal Indonesia." }
+        { icon: "🪡", title: "100% Jahit Tangan", description: "Pola dipotong dan dijahit manual penuh ketelitian untuk hasil rapi & presisi." },
+        { icon: "✨", title: "Kain Flanel & Dacron", description: "Menggunakan bahan flanel berkualitas dan isian dacron silikon murni anti-kempes." },
+        { icon: "🎁", title: "Ukuran Mungil 10–20cm", description: "Sangat cocok untuk kado ulang tahun, wisuda, gantungan kunci, maupun pajangan estetik." },
+        { icon: "🇮🇩", title: "100% Produk Lokal", description: "Karya handmade pengrajin lokal Indonesia dengan detail berkarakter." }
       ]
     },
     variants: []
@@ -154,28 +157,29 @@ export const PRODUCTS: Product[] = [
     price: 110000,
     category: 'Boneka Beruang',
     image: '/images/plushie_dino.png',
-    description: 'Boneka dinosaurus bayi berwarna hijau cerah dengan ornamen gerigi kuning lembut di punggungnya. Teman berpetualang yang tangguh namun sangat ramah pelukan!',
+    description: 'Boneka dinosaurus flanel berwarna hijau cerah dengan ornamen gerigi kuning lembut di punggungnya. Koleksi pajangan berkarakter unik dalam ukuran mungil 10-20cm.',
     rating: 5.0,
     reviewsCount: 64,
     shopeeLink: 'https://shopee.co.id',
     shopeePrice: 115000,
     specifications: {
-      material: '100% Premium Dacron Grade A & Kain Spandex Lembut elastis',
-      size: 'Panjang 38 cm, Tinggi 22 cm',
-      washing: 'Cukup diusap dengan kain basah hangat atau cuci tangan lembut',
-      safeForKids: true,
+      material: '100% Kain Flanel Premium & Isian Dacron Grade A',
+      size: 'Panjang 16 cm, Tinggi 12 cm (Range 10–20 cm)',
+      washing: 'Tidak disarankan dicuci basah (cukup bersihkan debu secara kering/dry wipe)',
+      safeForKids: false,
       types: [
         { name: "Hijau Cerah", extraPrice: 0 }
       ],
       sizes: [
-        { name: "Medium (38cm)", extraPrice: 0 },
-        { name: "Jumbo (80cm)", extraPrice: 100000 }
+        { name: "Mini (12cm)", extraPrice: 0 },
+        { name: "Standard (16cm)", extraPrice: 15000 },
+        { name: "Maxi (20cm)", extraPrice: 35000 }
       ],
       features: [
-        { icon: "🪡", title: "Jahitan Super Kuat", description: "Metode double stitch pengerjaan manual oleh pengrajin lokal berlisensi." },
-        { icon: "🛡️", title: "Hypoallergenic", description: "Bulu halus tidak mudah rontok, debu tidak mengendap. Aman bagi alergi." },
-        { icon: "🧼", title: "Washable & Quick-dry", description: "Silikon dakron grade A tidak mudah menggumpal meskipun dicuci mesin berkali-kali." },
-        { icon: "🇮🇩", title: "100% Produk Lokal", description: "Mendukung peningkatan ekonomi pengrajin boneka lokal Indonesia." }
+        { icon: "🪡", title: "100% Jahit Tangan", description: "Pola dipotong dan dijahit manual penuh ketelitian untuk hasil rapi & presisi." },
+        { icon: "✨", title: "Kain Flanel & Dacron", description: "Menggunakan bahan flanel berkualitas dan isian dacron silikon murni anti-kempes." },
+        { icon: "🎁", title: "Ukuran Mungil 10–20cm", description: "Sangat cocok untuk kado ulang tahun, wisuda, gantungan kunci, maupun pajangan estetik." },
+        { icon: "🇮🇩", title: "100% Produk Lokal", description: "Karya handmade pengrajin lokal Indonesia dengan detail berkarakter." }
       ]
     },
     variants: []
@@ -186,28 +190,29 @@ export const PRODUCTS: Product[] = [
     price: 79000,
     category: 'Boneka Beruang',
     image: '/images/plushie_neko.png',
-    description: 'Boneka kucing putih bulat super squishy dengan tekstur selembut kue mochi. Sangat seru ditekan-tekan, empuk luar biasa, dan bisa berfungsi sebagai bantal leher nyaman.',
+    description: 'Boneka kucing flanel bulat dengan detail jahitan wajah yang imut. Cocok sebagai hiasan rak buku atau meja rias berukuran mungil nan estetik.',
     rating: 4.7,
     reviewsCount: 81,
     shopeeLink: 'https://shopee.co.id',
     shopeePrice: 84000,
     specifications: {
-      material: 'Isian Microfiber Bulu Angsa Sintetis & Kain Spandex Elastis premium',
-      size: 'Diameter 30 cm',
-      washing: 'Bisa dicuci mesin cuci dengan laundry bag putaran rendah',
-      safeForKids: true,
+      material: '100% Kain Flanel Premium & Isian Dacron Grade A',
+      size: 'Diameter 15 cm (Range 10–20 cm)',
+      washing: 'Tidak disarankan dicuci basah (cukup bersihkan debu secara kering/dry wipe)',
+      safeForKids: false,
       types: [
         { name: "Putih", extraPrice: 0 }
       ],
       sizes: [
-        { name: "Squishy (30cm)", extraPrice: 0 },
-        { name: "Super Jumbo (60cm)", extraPrice: 80000 }
+        { name: "Mini (10cm)", extraPrice: 0 },
+        { name: "Standard (15cm)", extraPrice: 15000 },
+        { name: "Maxi (20cm)", extraPrice: 35000 }
       ],
       features: [
-        { icon: "🪡", title: "Jahitan Super Kuat", description: "Metode double stitch pengerjaan manual oleh pengrajin lokal berlisensi." },
-        { icon: "🛡️", title: "Hypoallergenic", description: "Bulu halus tidak mudah rontok, debu tidak mengendap. Aman bagi alergi." },
-        { icon: "🧼", title: "Washable & Quick-dry", description: "Silikon dakron grade A tidak mudah menggumpal meskipun dicuci mesin berkali-kali." },
-        { icon: "🇮🇩", title: "100% Produk Lokal", description: "Mendukung peningkatan ekonomi pengrajin boneka lokal Indonesia." }
+        { icon: "🪡", title: "100% Jahit Tangan", description: "Pola dipotong dan dijahit manual penuh ketelitian untuk hasil rapi & presisi." },
+        { icon: "✨", title: "Kain Flanel & Dacron", description: "Menggunakan bahan flanel berkualitas dan isian dacron silikon murni anti-kempes." },
+        { icon: "🎁", title: "Ukuran Mungil 10–20cm", description: "Sangat cocok untuk kado ulang tahun, wisuda, gantungan kunci, maupun pajangan estetik." },
+        { icon: "🇮🇩", title: "100% Produk Lokal", description: "Karya handmade pengrajin lokal Indonesia dengan detail berkarakter." }
       ]
     },
     variants: []
@@ -218,29 +223,29 @@ export const PRODUCTS: Product[] = [
     price: 125000,
     category: 'Kado Wisuda',
     image: '/images/plushie_grad_bear.png',
-    description: 'Teddy Bear spesial wisuda lengkap dengan topi toga hitam berkuncir dan gulungan ijazah dengan pita merah cantik. Hadiah kelulusan terbaik yang awet dan manis.',
+    description: 'Teddy Bear flanel spesial wisuda lengkap dengan topi toga hitam dan gulungan ijazah dengan pita merah cantik. Hadiah kelulusan terbaik yang awet dan rapi.',
     rating: 4.9,
     reviewsCount: 52,
     shopeeLink: 'https://shopee.co.id',
     shopeePrice: 135000,
     specifications: {
-      material: '100% Premium Dacron & Bulu Snail Mawar Bertekstur Indah',
-      size: 'Tinggi 35 cm (posisi duduk)',
-      washing: 'Dicuci kering (dry clean) disarankan, toga dapat dilepas',
-      safeForKids: true,
+      material: '100% Kain Flanel Premium & Isian Dacron Grade A',
+      size: 'Tinggi 18 cm (posisi duduk, Range 10–20 cm)',
+      washing: 'Tidak disarankan dicuci basah (cukup bersihkan debu secara kering/dry wipe)',
+      safeForKids: false,
       types: [
         { name: "Kado Wisuda Biasa", extraPrice: 0 },
         { name: "Kustom Nama (+Selempang)", extraPrice: 15000 }
       ],
       sizes: [
-        { name: "Medium (35cm)", extraPrice: 0 },
-        { name: "Jumbo (70cm)", extraPrice: 124000 }
+        { name: "Standard (15cm)", extraPrice: 0 },
+        { name: "Maxi (20cm)", extraPrice: 35000 }
       ],
       features: [
-        { icon: "🪡", title: "Jahitan Super Kuat", description: "Metode double stitch pengerjaan manual oleh pengrajin lokal berlisensi." },
-        { icon: "🛡️", title: "Hypoallergenic", description: "Bulu halus tidak mudah rontok, debu tidak mengendap. Aman bagi alergi." },
-        { icon: "🧼", title: "Washable & Quick-dry", description: "Silikon dakron grade A tidak mudah menggumpal meskipun dicuci mesin berkali-kali." },
-        { icon: "🇮🇩", title: "100% Produk Lokal", description: "Mendukung peningkatan ekonomi pengrajin boneka lokal Indonesia." }
+        { icon: "🪡", title: "100% Jahit Tangan", description: "Pola dipotong dan dijahit manual penuh ketelitian untuk hasil rapi & presisi." },
+        { icon: "✨", title: "Kain Flanel & Dacron", description: "Menggunakan bahan flanel berkualitas dan isian dacron silikon murni anti-kempes." },
+        { icon: "🎁", title: "Ukuran Mungil 10–20cm", description: "Sangat cocok untuk kado ulang tahun, wisuda, gantungan kunci, maupun pajangan estetik." },
+        { icon: "🇮🇩", title: "100% Produk Lokal", description: "Karya handmade pengrajin lokal Indonesia dengan detail berkarakter." }
       ]
     },
     variants: []
@@ -251,16 +256,16 @@ export const PRODUCTS: Product[] = [
     price: 29000,
     category: 'Gantungan Kunci',
     image: '/images/plushie_keychain_bear.png',
-    description: 'Gantungan kunci boneka beruang mini yang sangat empuk dan berbulu lebat. Dilengkapi gantungan kunci logam anti karat kuat untuk tas ransel maupun kunci kendaraan.',
+    description: 'Gantungan kunci boneka beruang flanel mini (10-12cm) yang dijahit tangan rapi. Dilengkapi gantungan logam anti karat untuk tas ransel ataupun tas sekolah.',
     rating: 4.9,
     reviewsCount: 215,
     shopeeLink: 'https://shopee.co.id',
     shopeePrice: 34900,
     specifications: {
-      material: 'Dacron Premium Silikon & Bulu Rasfur Halus',
+      material: '100% Kain Flanel Premium & Isian Dacron Grade A',
       size: 'Tinggi 12 cm',
-      washing: 'Cuci tangan secara perlahan menggunakan sikat gigi lembut',
-      safeForKids: true,
+      washing: 'Tidak disarankan dicuci basah (cukup bersihkan debu secara kering/dry wipe)',
+      safeForKids: false,
       types: [
         { name: "Cokelat", extraPrice: 0 },
         { name: "Krem", extraPrice: 0 }
@@ -277,16 +282,16 @@ export const PRODUCTS: Product[] = [
     price: 29000,
     category: 'Gantungan Kunci',
     image: '/images/plushie_keychain_bunny.png',
-    description: 'Gantungan kunci boneka kelinci putih mini yang imut dengan detail telinga bagian dalam berwarna pink lembut. Menambah sentuhan gemas di tas sekolah atau ransel kerjamu.',
+    description: 'Gantungan kunci boneka kelinci flanel putih mini (10-12cm) yang imut dengan detail telinga pink lembut. Sentuhan gemas untuk aksesoris tas Anda.',
     rating: 4.7,
     reviewsCount: 38,
     shopeeLink: 'https://shopee.co.id',
     shopeePrice: 34900,
     specifications: {
-      material: 'Dacron Premium Silikon & Bulu Yelvo Halus',
+      material: '100% Kain Flanel Premium & Isian Dacron Grade A',
       size: 'Tinggi 12 cm',
-      washing: 'Cuci tangan perlahan dengan air sabun ringan',
-      safeForKids: true,
+      washing: 'Tidak disarankan dicuci basah (cukup bersihkan debu secara kering/dry wipe)',
+      safeForKids: false,
       types: [
         { name: "Pink Telinga", extraPrice: 0 }
       ],

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ShoppingCart,
   User,
@@ -14,13 +14,17 @@ import {
   ShieldCheck,
   Menu,
   X,
+  Heart,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { WishlistDrawer } from "./WishlistDrawer";
 import AuthModal from "./AuthModal";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 export default function Header() {
+  const router = useRouter();
+  const { settings } = useSiteSettings();
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [cart, setCart] = useState<any[]>([]);
@@ -32,6 +36,7 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeHash, setActiveHash] = useState("");
+  const [favCount, setFavCount] = useState(0);
 
   const getAvatarStyle = (emailStr: string) => {
     const colors = [
@@ -123,6 +128,16 @@ export default function Header() {
     // Listen to same-window cart updates
     window.addEventListener("cart_updated", loadCart);
 
+    // Favorites listener
+    const loadFavs = () => {
+      try {
+        const favs = JSON.parse(localStorage.getItem("simoengil_favorites") || "[]");
+        setFavCount(favs.length);
+      } catch (e) {}
+    };
+    loadFavs();
+    window.addEventListener("favorites_updated", loadFavs);
+
     // Override localStorage.setItem to dispatch custom event
     const originalSetItem = localStorage.setItem;
     localStorage.setItem = function (key, value) {
@@ -134,13 +149,21 @@ export default function Header() {
 
     // Auth
     const checkAuth = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      // 1. Cek sesi lokal (Cepat)
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setUser(session.user);
-        if (session.user?.user_metadata?.role === "admin") {
-          setIsAdmin(true);
+        setIsAdmin(session.user?.user_metadata?.role === "admin");
+        
+        // 2. Ambil data terbaru dari server di balik layar untuk sinkronisasi role
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUser(user);
+          setIsAdmin(user.user_metadata?.role === "admin");
+          // Jika ada perubahan metadata (misal: role diganti di dashboard), paksa refresh sesi
+          if (JSON.stringify(user.user_metadata) !== JSON.stringify(session.user.user_metadata)) {
+            supabase.auth.refreshSession();
+          }
         }
       }
     };
@@ -163,6 +186,7 @@ export default function Header() {
     return () => {
       authListener?.subscription?.unsubscribe();
       window.removeEventListener("cart_updated", loadCart);
+      window.removeEventListener("favorites_updated", loadFavs);
       if (localStorage.setItem !== originalSetItem) {
         localStorage.setItem = originalSetItem;
       }
@@ -222,18 +246,15 @@ export default function Header() {
     { name: "Katalog", path: "/products", icon: Grid },
     { name: "FAQ", path: "/#faq", icon: HelpCircle },
   ];
-  if (pathname.startsWith("/account") || pathname === "/admin-panel/dashboard") {
+  if (pathname.startsWith("/account") || pathname === "/admin-panel/dashboard" || pathname === "/cart" || pathname === "/checkout") {
     return null;
   }
-
-  // Hide global header on product detail page
-  if (pathname.startsWith("/product/")) return null;
 
   return (
     <>
       <motion.header
         onClick={() => window.dispatchEvent(new Event("navbar_interaction"))}
-        className={`fixed top-0 left-0 right-0 w-full z-40 transition-all duration-700 ease-in-out will-change-transform ${
+        className={`fixed top-0 left-0 right-0 w-full z-50 transition-all duration-700 ease-in-out will-change-transform ${
           isScrolled ? "pt-2 pb-0 sm:py-4 px-4" : "pt-4 px-6 lg:px-12"
         }`}
       >
@@ -366,7 +387,7 @@ export default function Header() {
               {/* Desktop Right Actions */}
               <div className="hidden md:flex items-center gap-3">
                 <a
-                  href="https://wa.me/6281545585448?text=Halo%20Simoengil,%20saya%20tertarik%20dengan%20boneka%20handmade%20Simoengil!"
+                  href={`https://wa.me/${settings.whatsappNumber}?text=Halo%20Simoengil,%20saya%20tertarik%20dengan%20boneka%20handmade%20Simoengil!`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4.5 py-1.5 bg-[#25D366] hover:bg-[#128C7E] text-white font-extrabold text-xs rounded-xl shadow-md transition-all hover:scale-105 active:scale-95 items-center gap-2 flex"
@@ -384,11 +405,16 @@ export default function Header() {
                   <span>WhatsApp</span>
                 </a>
 
-                {/* Cart */}
                 <button
                   data-cart-icon
                   aria-label="Buka keranjang"
-                  onClick={() => setIsWishlistOpen(true)}
+                  onClick={() => {
+                    if (window.innerWidth < 768) {
+                      router.push("/cart");
+                    } else {
+                      setIsWishlistOpen(true);
+                    }
+                  }}
                   className={`relative p-2.5 rounded-xl border transition-all cursor-pointer ${
                     isScrolled
                       ? "bg-white/10 hover:bg-white/20 border-white/10 text-white"
@@ -438,7 +464,7 @@ export default function Header() {
               {/* Mobile Actions (Right) */}
               <div className="flex md:hidden items-center gap-2">
                 <button
-                  onClick={() => setIsWishlistOpen(true)}
+                  onClick={() => router.push("/cart")}
                   className={`relative p-2 rounded-lg border cursor-pointer transition-all ${
                     isScrolled
                       ? "bg-white/10 border-white/10 text-white"

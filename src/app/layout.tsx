@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { Poppins, Inter } from "next/font/google";
 import Script from "next/script";
+import { Cloud, Star, Sparkles, Heart } from "lucide-react";
 import "./globals.css";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import Header from "@/components/Header";
 import { ChatWidget } from "@/components/ChatWidget";
 import MainLayoutWrapper from "@/components/MainLayoutWrapper";
 import CustomScrollbar from "@/components/CustomScrollbar";
+
+import { SiteSettingsProvider } from "@/context/SiteSettingsContext";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -43,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={`${poppins.variable} ${inter.variable} scroll-smooth`} data-scroll-behavior="smooth">
-      <body className="min-h-screen flex flex-col font-sans text-[#2C2C2C] antialiased selection:bg-pink-100 selection:text-pink-600 relative overflow-x-clip">
+      <body className="min-h-screen flex flex-col font-sans text-[#2C2C2C] antialiased selection:bg-pink-100 selection:text-pink-600 relative">
         
         {/* Midtrans Snap JS SDK */}
         <Script
@@ -54,10 +57,10 @@ export default function RootLayout({
           strategy="lazyOnload"
         />
 
-        {/* Global Fixed Background */}
-        <div className="fixed inset-0 z-0 pointer-events-none">
+        {/* Global Background (Scrolling with content) */}
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden h-full w-full min-h-[100vh]">
           {/* Base Soft Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#FFF8F3] via-[#FFF5F0] to-[#FFE4EC]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#FFF8F3] via-[#FFF5F0] to-[#FFE4EC] h-full" />
           
           {/* SVG Repeating Pattern */}
           <div className="absolute inset-0 bg-cute-pattern opacity-80" />
@@ -72,25 +75,27 @@ export default function RootLayout({
           />
           
           {/* Faint Floating Elements */}
-          <div className="absolute top-[15%] left-[10%] text-6xl opacity-30 animate-float-slow">☁️</div>
-          <div className="absolute top-[60%] right-[10%] text-5xl opacity-40 animate-float-fast">⭐</div>
-          <div className="absolute bottom-[20%] left-[20%] text-4xl opacity-40 animate-float">🧸</div>
-          <div className="absolute top-[30%] right-[25%] text-4xl opacity-30 animate-float-slow" style={{ animationDelay: '1s' }}>💖</div>
+          <div className="absolute top-[15%] left-[10%] opacity-30 animate-float-slow text-[#FFB6C8]"><Cloud className="w-14 h-14" /></div>
+          <div className="absolute top-[60%] right-[10%] opacity-40 animate-float-fast text-[#E8B37D]"><Star className="w-12 h-12 fill-current" /></div>
+          <div className="absolute bottom-[20%] left-[20%] opacity-40 animate-float text-[#FF8FB1]"><Sparkles className="w-10 h-10" /></div>
+          <div className="absolute top-[30%] right-[25%] opacity-30 animate-float-slow text-[#FFB6C8]" style={{ animationDelay: '1s' }}><Heart className="w-10 h-10 fill-current" /></div>
           
           {/* Subtle Color Blobs */}
           <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-white/40 blur-3xl" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[35vw] h-[35vw] rounded-full bg-[#FFB6C8]/10 blur-3xl" />
         </div>
 
-        <Header />
-        
-        {/* Main Content */}
-        <MainLayoutWrapper>
-          {children}
-        </MainLayoutWrapper>
-        <PWAInstallPrompt />
-        <ChatWidget />
-        <CustomScrollbar />
+        <SiteSettingsProvider>
+          <Header />
+          
+          {/* Main Content */}
+          <MainLayoutWrapper>
+            {children}
+          </MainLayoutWrapper>
+          <PWAInstallPrompt />
+          <ChatWidget />
+          <CustomScrollbar />
+        </SiteSettingsProvider>
       </body>
     </html>
   );

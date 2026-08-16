@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Heart,
   Search,
@@ -17,9 +19,11 @@ import {
   Gift,
   HeartHandshake,
   Star,
+  Check,
 } from "lucide-react";
 import { Product, ProductVariant, PRODUCTS } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
+import { FeaturedProductsShowcase } from "@/components/FeaturedProductsShowcase";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
 import { WishlistDrawer } from "@/components/WishlistDrawer";
 import { CartCelebration } from "@/components/CartCelebration";
@@ -88,13 +92,201 @@ interface SiteSettings {
   logoIcon: string;
   logoImageType: "icon" | "image";
   logoImageUrl: string;
+  featuredTitle?: string;
+  featuredSubtitle?: string;
+  featuredProductIds?: string[];
+  featuredCtaText?: string;
   [key: string]: unknown;
 }
 
+interface FeaturedProductsAdminModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  productsList: Product[];
+  currentIds: string[];
+  onSave: (newIds: string[]) => Promise<void>;
+}
+
+function FeaturedProductsAdminModal({
+  isOpen,
+  onClose,
+  productsList,
+  currentIds,
+  onSave,
+}: FeaturedProductsAdminModalProps) {
+  const [selectedIds, setSelectedIds] = useState<string[]>(currentIds);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setSelectedIds(currentIds);
+  }, [currentIds, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleToggle = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((item) => item !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const handleSelectFirst4 = () => {
+    setSelectedIds(productsList.slice(0, 4).map((p) => p.id));
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onSave(selectedIds);
+      onClose();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+      onClick={onClose}
+    >
+      <div
+        className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-100"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 shrink-0" />
+
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider mb-1">
+              <span>Admin Mode</span>
+            </div>
+            <h3 className="font-serif text-xl sm:text-2xl font-bold text-slate-800">
+              Atur Produk Unggulan
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              Pilih produk yang ingin ditampilkan pada Grid Statis di beranda.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors text-slate-500 hover:text-slate-700"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="px-6 py-3 bg-amber-50/60 border-b border-amber-100/50 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs font-bold text-amber-900">
+            Terpilih:{" "}
+            <span className="text-amber-600 text-sm font-black">
+              {selectedIds.length}
+            </span>{" "}
+            produk
+            <span className="text-amber-700/75 font-normal ml-1">
+              (Disarankan 4 atau 8 produk agar grid statis simetris)
+            </span>
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSelectFirst4}
+              className="px-3 py-1 rounded-lg bg-white border border-amber-300 text-amber-800 text-xs font-bold hover:bg-amber-100 transition-colors shadow-2xs"
+            >
+              Pilih 4 Pertama
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs font-medium hover:bg-slate-100 transition-colors shadow-2xs"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 overflow-y-auto space-y-2.5 flex-1 custom-scrollbar">
+          {productsList.map((product) => {
+            const isChecked = selectedIds.includes(product.id);
+            return (
+              <div
+                key={product.id}
+                onClick={() => handleToggle(product.id)}
+                className={`flex items-center gap-4 p-3 rounded-2xl border-2 transition-all cursor-pointer ${
+                  isChecked
+                    ? "border-amber-400 bg-amber-50/40 shadow-xs"
+                    : "border-slate-100 hover:border-slate-200 bg-white"
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors shrink-0 ${
+                    isChecked
+                      ? "bg-amber-500 border-amber-500 text-white"
+                      : "border-slate-300 bg-white"
+                  }`}
+                >
+                  {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                </div>
+
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200/60">
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-slate-800 text-sm truncate">
+                    {product.name}
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    {product.category} ·{" "}
+                    <span className="font-semibold text-slate-700">
+                      Rp {product.price.toLocaleString("id-ID")}
+                    </span>
+                  </p>
+                </div>
+
+                {isChecked && (
+                  <span className="text-[11px] font-extrabold text-amber-700 bg-amber-200/50 px-2.5 py-1 rounded-full shrink-0">
+                    #{selectedIds.indexOf(product.id) + 1}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-100 transition-colors"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-6 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-black font-extrabold text-sm shadow-sm transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 flex items-center gap-2"
+          >
+            {isSaving ? "Menyimpan..." : "Simpan Pilihan"}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function Home() {
+  const router = useRouter();
   // State
   const [productsList, setProductsList] = useState<Product[]>(PRODUCTS);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isFeaturedModalOpen, setIsFeaturedModalOpen] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("Semua");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [cart, setCart] = useState<import("@/data/products").CartItem[]>([]);
@@ -201,9 +393,10 @@ export default function Home() {
 
   // Site Settings
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
-    heroTitle: "Temukan Boneka Kesukaanmu!",
+    heroTitle:
+      "Boneka Flanel Jahit Tangan Premium — Kado Lembut yang Selalu Dicinta",
     heroDescription:
-      "Toko online Boneka Simoengil menyediakan aneka boneka flanel premium dalam berbagai ukuran (10cm, 15cm, 20cm). Sangat cocok untuk gantungan kunci, kado istimewa, pajangan estetik, hingga yang ukuran besar asyik untuk dipeluk si kecil!",
+      "Setiap boneka flanel Simoengil dijahit tangan satu per satu menggunakan dacron Grade A dan bulu yelvo hypoallergenic. Presisi, kuat, serta aman untuk balita maupun kado istimewa bagi orang tersayang.",
     whyTitle: "Kenapa Memilih Boneka Simoengil?",
     whyFeatures: [
       {
@@ -212,28 +405,33 @@ export default function Home() {
         desc: "Isian silikon dacron super murni tanpa campuran limbah garmen. Memastikan keempukan tahan bertahun-tahun dan tidak gampang kempes.",
       },
       {
-        icon: "RefreshCw",
-        title: "Bisa Dicuci (Washable)",
-        desc: "Mudah dibersihkan! Cukup dicuci dengan tangan atau mesin cuci (putaran halus). Dacron akan mengembang kembali begitu kering sempurna.",
+        icon: "Sparkles",
+        title: "Ukuran Mungil 10–20cm",
+        desc: "Dirancang dalam ukuran 10cm sampai 20cm yang sangat cocok dijadikan kado spesial, gantungan kunci tas, atau pajangan estetik di kamar.",
       },
       {
         icon: "Smile",
-        title: "Aman untuk Bayi",
-        desc: "Kain luar bulu yelvo/spandex hypoallergenic berbulu lembut dan tidak mudah rontok. Lulus uji kualitas aman bagi pernapasan balita.",
+        title: "Kain Flanel & Dacron",
+        desc: "Dikerjakan dari kain flanel pilihan yang rapi dan berkarakter, diisi dengan dacron grade A anti-kempes yang tahan lama.",
       },
     ],
     heroImage1: "/images/plushie_teddy.png",
     heroImage2: "/images/plushie_bunny.png",
-    heroBadge1Icon: "🌟",
-    heroBadge1Text: "Terlembut",
-    heroBadge2Icon: "❤️",
-    heroBadge2Text: "Anti Alergi",
-    heroTagline: "Boneka Flanel Premium, Jahit Tangan, Lembut & Aman",
+    heroBadge1Icon: "🪡",
+    heroBadge1Text: "100% Handmade",
+    heroBadge2Icon: "✨",
+    heroBadge2Text: "Dacron Grade A",
+    heroTagline: "100% Jahit Tangan • Grade A Dacron • Ukuran Mungil 10–20cm",
     logoTextMain: "Simoengil",
     logoTextSub: "Plushie & Doll",
     logoIcon: "Smile",
     logoImageType: "icon",
     logoImageUrl: "",
+    featuredTitle: "Produk Unggulan Pilihan Kami",
+    featuredSubtitle:
+      "Koleksi boneka terfavorit yang paling sering dipesan dan dicintai pelanggan. Langsung terlihat sekaligus tanpa perlu digeser!",
+    featuredProductIds: ["1", "2", "3", "4"],
+    featuredCtaText: "Lihat Semua Koleksi →",
     trustItems: [
       {
         image: "/images/3-Hand.jpeg",
@@ -386,6 +584,77 @@ export default function Home() {
       },
     );
 
+    const sanitizeHeroSettings = (
+      loaded: Partial<SiteSettings>,
+    ): Partial<SiteSettings> => {
+      const copy = { ...loaded };
+      if (
+        !copy.heroTitle ||
+        copy.heroTitle.includes("Selamat Datang") ||
+        copy.heroTitle === "Temukan Boneka Kesukaanmu!"
+      ) {
+        copy.heroTitle =
+          "Boneka Flanel Jahit Tangan Premium — Kado Lembut yang Selalu Dicinta";
+      }
+      if (
+        !copy.heroDescription ||
+        copy.heroDescription.trim().startsWith('"') ||
+        copy.heroDescription.includes("Simoengil adalah platform e-commerce") ||
+        copy.heroDescription.includes("balita") ||
+        copy.heroDescription.includes("yelvo") ||
+        copy.heroDescription.includes("dicuci")
+      ) {
+        copy.heroDescription =
+          "Setiap boneka flanel Simoengil berukuran mungil (10–20cm), dijahit tangan satu per satu menggunakan kain flanel pilihan dan dacron Grade A anti-kempes. Sangat cocok sebagai kado istimewa, gantungan kunci, maupun pajangan estetik.";
+      }
+      if (
+        !copy.heroTagline ||
+        copy.heroTagline.includes("Balita") ||
+        copy.heroTagline.includes("balita") ||
+        copy.heroTagline.includes("Dicuci") ||
+        copy.heroTagline.includes("Bayi")
+      ) {
+        copy.heroTagline = "100% Jahit Tangan • Grade A Dacron • Ukuran Mungil 10–20cm";
+      }
+      if (copy.heroBadge1Text === "Terlembut" || copy.heroBadge1Text === "Aman untuk Bayi") {
+        copy.heroBadge1Text = "100% Handmade";
+        copy.heroBadge1Icon = "🪡";
+      }
+      if (copy.heroBadge2Text === "Anti Alergi" || copy.heroBadge2Text === "Bisa Dicuci") {
+        copy.heroBadge2Text = "Dacron Grade A";
+        copy.heroBadge2Icon = "✨";
+      }
+      if (copy.whyFeatures && Array.isArray(copy.whyFeatures)) {
+        copy.whyFeatures = copy.whyFeatures.map((feat) => {
+          if (
+            feat.title?.includes("Dicuci") ||
+            feat.title?.includes("Washable") ||
+            feat.desc?.includes("dicuci")
+          ) {
+            return {
+              icon: "Sparkles",
+              title: "Ukuran Mungil 10–20cm",
+              desc: "Dirancang dalam ukuran 10cm sampai 20cm yang sangat cocok dijadikan kado spesial, gantungan kunci tas, atau pajangan estetik di kamar.",
+            };
+          }
+          if (
+            feat.title?.includes("Bayi") ||
+            feat.title?.includes("Balita") ||
+            feat.desc?.includes("balita") ||
+            feat.desc?.includes("yelvo")
+          ) {
+            return {
+              icon: "Smile",
+              title: "Kain Flanel & Dacron",
+              desc: "Dikerjakan dari kain flanel pilihan yang rapi dan berkarakter, diisi dengan dacron grade A anti-kempes yang tahan lama.",
+            };
+          }
+          return feat;
+        });
+      }
+      return copy;
+    };
+
     const fetchSettings = async () => {
       try {
         const { data, error } = await supabase
@@ -395,12 +664,13 @@ export default function Home() {
           .single();
           
         if (!error && data && data.settings) {
+          const cleanSettings = sanitizeHeroSettings(data.settings);
           setSiteSettings((prev) => ({
             ...prev,
-            ...data.settings,
+            ...cleanSettings,
           }));
           // Update the stale local cache with fresh data from DB
-          localStorage.setItem("simoengil_settings", JSON.stringify(data.settings));
+          localStorage.setItem("simoengil_settings", JSON.stringify(cleanSettings));
           return; // Exit early since we got fresh data
         }
       } catch (err) {
@@ -411,7 +681,7 @@ export default function Home() {
       const local = localStorage.getItem("simoengil_settings");
       if (local) {
         try {
-          const settings = JSON.parse(local);
+          const settings = sanitizeHeroSettings(JSON.parse(local));
           setSiteSettings((prev) => ({
             ...prev,
             ...settings,
@@ -550,8 +820,7 @@ export default function Home() {
 
   // Open product detail
   const handleProductDetailClick = (product: Product) => {
-    setSelectedProduct(product);
-    setIsDetailOpen(true);
+    router.push(`/product/${product.id}`);
   };
 
   // Toggle FAQ accordion
@@ -576,8 +845,8 @@ export default function Home() {
   // FAQs
   const faqs = [
     {
-      q: "Apakah boneka flanel Simoengil aman untuk bayi dan balita?",
-      a: "Sangat aman, Bu. Boneka kami terbuat dari kain flanel premium yang lembut dan hypoallergenic (tidak mudah menyebabkan alergi). Jahitannya rapi, tidak ada bagian kecil yang mudah lepas, sehingga aman untuk anak kecil dan bayi.",
+      q: "Apakah boneka flanel Simoengil dikhususkan untuk balita atau bisa dicuci?",
+      a: "Boneka flanel kami berukuran mungil (10-20cm) yang dirancang khusus sebagai kado spesial, gantungan kunci tas, dan pajangan estetik — bukan target atau dikhususkan untuk balita. Selain itu, bahan kain flanel tidak disarankan untuk dicuci basah agar bentuk dan teksturnya tetap awet (cukup bersihkan debu secara kering/dry wipe).",
     },
 
     {
@@ -599,14 +868,29 @@ export default function Home() {
   const story: StoryContent = (siteSettings.story as StoryContent) ?? {
     title: "Boneka Flanel yang Dibuat dengan Kasih Sayang",
     paragraph1:
-      "Halo, saya ibu dari Simoengil. Boneka-boneka ini saya buat dengan tangan sendiri menggunakan kain flanel premium yang super lembut. Setiap boneka dijahit pelan-pelan agar rapi dan kuat.",
+      "Halo, selamat datang di Simoengil. Boneka-boneka ini saya buat dengan tangan sendiri menggunakan kain flanel dan dacron grade A pilihan. Setiap boneka dijahit perlahan agar rapi, berkarakter, dan presisi.",
     paragraph2:
-      "Saya paham betul seorang ibu ingin yang terbaik. Makanya saya hanya pakai bahan flanel berkualitas tinggi. Boneka ini tersedia dalam ukuran 10cm dan 15cm (imut & mungil, tidak untuk dipeluk), hingga ukuran 20cm yang nyaman dipeluk.",
+      "Saya paham betul sebuah karya kerajinan tangan harus memiliki ketelitian tinggi. Boneka flanel ini tersedia dalam ukuran mungil 10cm hingga 20cm — imut, detail, dan sangat pas untuk dijadikan koleksi maupun hadiah.",
     paragraph3:
-      "Sangat cocok untuk kado ulang tahun, gantungan kunci, kado wisuda, atau sekadar teman bermain anak. Banyak pelanggan yang sudah membeli dan senang dengan hasilnya.",
+      "Sangat cocok untuk kado ulang tahun, gantungan kunci tas, kado wisuda, atau pajangan estetik di kamar. Banyak pelanggan yang sudah membeli dan senang dengan kerapihan karyanya.",
     quote:
-      "Setiap boneka dibuat pelan-pelan supaya bisa menemani anak dengan nyaman dan penuh kehangatan.",
+      "Setiap boneka flanel dikerjakan satu per satu dengan tangan, menghasilkan karya mungil yang rapi, unik, dan penuh makna.",
   };
+
+  // Derive Featured Products for Static Grid
+  const featuredProductIds = (siteSettings.featuredProductIds as string[]) || [
+    "1",
+    "2",
+    "3",
+    "4",
+  ];
+  const displayFeaturedProducts = featuredProductIds
+    .map((id) => productsList.find((p) => p.id === id))
+    .filter((p): p is Product => Boolean(p));
+  const finalFeaturedProducts =
+    displayFeaturedProducts.length > 0
+      ? displayFeaturedProducts
+      : productsList.slice(0, 4);
 
   return (
     <div className="relative min-h-screen flex flex-col selection:bg-orange-100 selection:text-orange-600 bg-transparent font-sans text-slate-800">
@@ -616,11 +900,11 @@ export default function Home() {
 
       <main className="flex-1 w-full overflow-x-hidden">
         {/* HERO SECTION */}
-        <section className="relative z-0 w-full min-h-[100svh] pt-28 pb-16 flex flex-col justify-center">
+        <section className="relative z-0 w-full min-h-[100svh] pt-20 sm:pt-28 pb-16 flex flex-col justify-start lg:justify-center">
           {/* Zoomed Out Background with Parallax Ref */}
           <div
             ref={bgRef}
-            className="absolute inset-0 w-full h-[130%] top-0 bg-cover bg-[30%_35%] md:bg-center bg-no-repeat z-0 pointer-events-none"
+            className="absolute inset-0 w-full h-[120%] md:h-[130%] top-0 bg-cover bg-[32%_30%] md:bg-center bg-no-repeat z-0 pointer-events-none"
             style={{ backgroundImage: "url('/images/-boneka_interior.webp')" }}
           />
           {/* Sunlight Beams from Window */}
@@ -977,41 +1261,67 @@ export default function Home() {
             </svg>
           </div>
 
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-end w-full z-20 mt-auto md:mt-0 pt-16 md:pt-0 pb-8 md:pb-0">
-            {/* Hero Info Text Block — Safe Zone Card */}
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center justify-between w-full z-20 mt-auto md:mt-0 pt-16 md:pt-0 pb-8 md:pb-0">
+            {/* Left Column: Interactive Product Annotation Badge (connecting with Left Illustration) removed */}
+
+            {/* Right Column: Editorial Hero Copy (Unboxed, seamlessly integrated) */}
             <div
               ref={textRef}
-              className="w-full md:w-[55%] lg:w-[50%] text-center md:text-left space-y-4 md:space-y-6 relative z-10 flex flex-col items-center md:items-start bg-white/85 backdrop-blur-sm rounded-2xl p-5 md:p-8 shadow-lg shadow-black/5 border border-white/60"
+              className="w-full lg:w-[58%] text-center lg:text-left space-y-5 lg:space-y-6 relative z-10 flex flex-col items-center lg:items-start ml-auto p-2 sm:p-4 mt-[42vh] sm:mt-[35vh] lg:mt-0"
             >
-              {/* Pre-headline Badge */}
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D48C70]/10 border border-[#D48C70]/20 text-[#D48C70] text-[10px] font-black uppercase tracking-[0.15em]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D48C70] animate-pulse" />
-                <span>Boneka Premium</span>
+              {/* Subtle ambient glow behind text to ensure crisp readability without a harsh card box */}
+              <div
+                className="absolute -inset-x-8 -inset-y-6 bg-gradient-to-b lg:bg-gradient-to-r from-transparent via-[#FFFDF9]/90 to-[#FFFDF9] lg:from-transparent lg:via-[#FFFDF9]/85 lg:to-[#FFFDF9]/95 blur-2xl -z-10 rounded-[3rem] pointer-events-none"
+                aria-hidden="true"
+              />
+
+              {/* Pre-headline Badge (Hexagon Style) */}
+              <div 
+                className="inline-flex items-center justify-center px-7 py-2 bg-[#FDF1D6] text-[#F15A24] text-xs sm:text-sm font-black uppercase tracking-wider drop-shadow-sm mb-2"
+                style={{ clipPath: "polygon(15px 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 15px 100%, 0% 50%)" }}
+              >
+                <span>Boneka Flanel Premium Jahit Tangan</span>
               </div>
+
+              {/* Editable Headline (H1) — Strong value proposition & differentiator */}
               <Editable
                 isAdmin={isAdmin}
                 itemKey="heroTitle"
                 initialValue={siteSettings.heroTitle}
                 onSave={handleSettingsSave}
                 as="h1"
-                className="font-sans font-black text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#1A1A1A] tracking-tight leading-[1.1] gsap-hero-title"
+                className="font-sans font-black text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#1A1A1A] tracking-tight leading-[1.12] gsap-hero-title drop-shadow-2xs"
               >
                 {(value) => (
                   <span dangerouslySetInnerHTML={{ __html: value }} />
                 )}
               </Editable>
 
-              {/* Editable Tagline — hidden on mobile */}
+              {/* Editable Description Paragraph (Clean, informative, no quotation marks or avatar) */}
               <Editable
                 isAdmin={isAdmin}
-                itemKey="heroTagline"
-                initialValue={siteSettings.heroTagline}
+                itemKey="heroDescription"
+                initialValue={siteSettings.heroDescription}
                 onSave={handleSettingsSave}
                 as="p"
-                className="hidden md:block text-sm md:text-base text-[#5A4F49] font-medium leading-relaxed max-w-md"
+                className="hidden sm:block text-sm sm:text-base md:text-lg text-[#4A3B32] font-medium leading-relaxed max-w-xl gsap-hero-desc"
               />
 
-              <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 md:gap-4 pt-2 w-full gsap-hero-ctas">
+              {/* Trust Pills — Authentic e-commerce social proof & differentiators */}
+              <div className="hidden sm:flex flex-wrap items-center justify-center lg:justify-start gap-2.5 sm:gap-3 pt-1 pb-1 text-xs sm:text-sm font-bold text-[#5A4F49]">
+                <div className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-[#D48C70]/25 shadow-2xs">
+                  <span className="text-amber-500">★ 4.9/5</span>
+                  <span>500+ Pelanggan Puas</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-[#D48C70]/25 shadow-2xs">
+                  <span>✓ 100% Jahit Tangan</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-[#D48C70]/25 shadow-2xs">
+                  <span>✓ Ukuran Mungil 10–20cm</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 md:gap-4 pt-3 w-full gsap-hero-ctas">
                 <div className="relative group inline-block w-full sm:w-auto">
                   {/* Floating Taekwondo Doll Hiding Behind */}
                   <div className="absolute -left-2 -top-6 w-16 h-16 sm:w-20 sm:h-20 z-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:-translate-y-10 group-hover:-translate-x-6 group-hover:-rotate-12 origin-bottom">
@@ -1031,15 +1341,16 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <Link
-                    href="/products"
+                  <a
+                    href="#katalog"
+                    onClick={handleHeroCtaClick}
                     className="relative z-10 w-full sm:w-auto px-7 py-4.5 bg-[#D48C70] hover:bg-[#C27D62] text-white font-extrabold rounded-xl text-center shadow-lg shadow-[#D48C70]/30 hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-3 cursor-pointer btn-premium-hover"
                   >
-                    <span>Pilih Boneka Favoritnya</span>
+                    <span>Pilih Boneka Favoritmu</span>
                     <span className="bg-white text-[#D48C70] w-6 h-6 rounded-md flex items-center justify-center font-black text-sm shrink-0">
                       &gt;
                     </span>
-                  </Link>
+                  </a>
                 </div>
 
                 <a
@@ -1053,8 +1364,123 @@ export default function Home() {
           </div>
         </section>
 
+        {/* =========================================================================
+            CLOUD DIVIDER — Hero → Featured Products
+        ========================================================================= */}
+        <div
+          className="relative z-20 w-full overflow-hidden flex justify-center pointer-events-none select-none drop-shadow-sm -mb-1"
+          aria-hidden="true"
+        >
+          <svg
+            viewBox="0 0 1440 100"
+            preserveAspectRatio="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-full min-w-[1000px] block"
+            style={{ height: "clamp(60px, 8vw, 100px)" }}
+          >
+            {/* Shadow / Secondary Cloud Layer */}
+            <path
+              d="
+                M0,100 L0,50
+                Q60,10 120,35
+                Q150,47 180,30
+                Q220,7 270,27
+                Q300,40 330,23
+                Q375,-3 420,20
+                Q455,37 490,17
+                Q535,-7 580,15
+                Q615,31 650,13
+                Q690,-7 730,10
+                Q770,27 810,7
+                Q850,-13 895,7
+                Q930,23 965,5
+                Q1005,-15 1050,7
+                Q1085,23 1120,5
+                Q1165,-17 1210,5
+                Q1250,23 1290,7
+                Q1340,-15 1380,10
+                Q1415,27 1440,15
+                L1440,100 Z
+              "
+              fill="#d0926e"
+              opacity="0.3"
+              transform="translate(-15, -12) scale(1.02)"
+            />
+            {/* Main Cloud Layer */}
+            <path
+              d="
+                M0,100 L0,50
+                Q60,10 120,35
+                Q150,47 180,30
+                Q220,7 270,27
+                Q300,40 330,23
+                Q375,-3 420,20
+                Q455,37 490,17
+                Q535,-7 580,15
+                Q615,31 650,13
+                Q690,-7 730,10
+                Q770,27 810,7
+                Q850,-13 895,7
+                Q930,23 965,5
+                Q1005,-15 1050,7
+                Q1085,23 1120,5
+                Q1165,-17 1210,5
+                Q1250,23 1290,7
+                Q1340,-15 1380,10
+                Q1415,27 1440,15
+                L1440,100 Z
+              "
+              fill="#e7c79f"
+            />
+            {/* Stitched Line Border (Jahitan) */}
+            <path
+              d="
+                M0,50
+                Q60,10 120,35
+                Q150,47 180,30
+                Q220,7 270,27
+                Q300,40 330,23
+                Q375,-3 420,20
+                Q455,37 490,17
+                Q535,-7 580,15
+                Q615,31 650,13
+                Q690,-7 730,10
+                Q770,27 810,7
+                Q850,-13 895,7
+                Q930,23 965,5
+                Q1005,-15 1050,7
+                Q1085,23 1120,5
+                Q1165,-17 1210,5
+                Q1250,23 1290,7
+                Q1340,-15 1380,10
+                Q1415,27 1440,15
+              "
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="2.5"
+              strokeDasharray="12 8"
+              strokeLinecap="round"
+              opacity="0.8"
+            />
+          </svg>
+        </div>
+
+        {/* =========================================================================
+            PRODUK UNGGULAN SHOWCASE (Interactive Fanned Polaroid Deck & Info Box)
+            Sesuai desain screenshot: Polaroid bertumpuk & info box navigasi circular
+        ========================================================================= */}
+        <FeaturedProductsShowcase
+          products={finalFeaturedProducts}
+          isAdmin={isAdmin}
+          siteSettings={siteSettings}
+          onSaveSettings={handleSettingsSave}
+          onOpenAdminModal={() => setIsFeaturedModalOpen(true)}
+          onProductDetailClick={handleProductDetailClick}
+        />
+
         {/* BRAND PROMISE SECTION (Text & Peach Background) */}
-        <section className="relative z-10 w-full pt-24 md:pt-32 pb-24 px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">
+        <section className="relative z-10 w-full pt-24 md:pt-32 pb-4 px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">
+          <div className="absolute top-0 h-[60px] md:h-[80px] left-0 right-0 bg-[#e7c79f] -z-20" />
           <div className="absolute top-[54px] md:top-[74px] bottom-0 left-0 right-0 bg-[#FCE6CB] -z-10" />
           {/* Creative Stitch & Felt Wave Divider (Made taller to allow downward parallax without revealing straight lines) */}
           <div
@@ -1066,14 +1492,14 @@ export default function Home() {
               preserveAspectRatio="none"
               className="w-full h-[55px] md:h-[75px] block"
             >
-              {/* Wavy Felt Fabric Layer */}
+              {/* Smooth Curve Felt Fabric Layer */}
               <path
-                d="M0,40 C50,20 100,20 150,40 C200,60 250,60 300,40 C350,20 400,20 450,40 C500,60 550,60 600,40 C650,20 700,20 750,40 C800,60 850,60 900,40 C950,20 1000,20 1050,40 C1100,60 1150,60 1200,40 L1200,120 L0,120 Z"
+                d="M0,20 Q600,110 1200,20 L1200,120 L0,120 Z"
                 fill="#FCE6CB"
               />
               {/* White Sewing Stitch Line (Embroidery Thread) */}
               <path
-                d="M0,33 C50,13 100,13 150,33 C200,53 250,53 300,33 C350,13 400,13 450,33 C500,53 550,53 600,33 C650,13 700,13 750,33 C800,53 850,53 900,33 C950,13 1000,13 1050,33 C1100,53 1150,53 1200,33"
+                d="M0,12 Q600,102 1200,12"
                 fill="none"
                 stroke="#FFFFFF"
                 strokeWidth="4"
@@ -1099,12 +1525,6 @@ export default function Home() {
             as="p"
             className="font-sans text-sm md:text-base text-[#5A4F49] max-w-lg mx-auto leading-relaxed mb-10 text-center"
           />
-          <Link
-            href="/products"
-            className="bg-[#D48C70] hover:bg-[#C27D62] text-white font-sans font-bold py-4 px-10 rounded-full shadow-lg shadow-[#D48C70]/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-lg"
-          >
-            Pilih Boneka Favoritnya
-          </Link>
         </section>
 
         {/* TRUST SHOWCASE */}
@@ -1120,15 +1540,14 @@ export default function Home() {
             CLOUD DIVIDER — Trust Badge → White Zone
         =============================================== */}
         <div
-          className="relative z-10 w-full -mb-1 pointer-events-none select-none"
+          className="relative z-10 w-full overflow-hidden flex justify-center -mb-1 pointer-events-none select-none"
           aria-hidden="true"
         >
           <svg
             viewBox="0 0 1440 140"
             preserveAspectRatio="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-full block"
-            style={{ height: "clamp(70px, 10vw, 140px)" }}
+            className="w-full min-w-[1000px] block h-[120px] md:h-[140px]"
           >
             {/* Cloud background base — peach (warna trust badge) */}
             <rect width="1440" height="140" fill="#FCE6CB" />
@@ -1223,7 +1642,10 @@ export default function Home() {
 
                 {/* Story Text Section */}
                 <div className="lg:col-span-7 space-y-8">
-                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FFF5F0] border border-[#D48C70]/30 text-[#D48C70] font-bold text-xs uppercase tracking-widest">
+                  <div 
+                    className="inline-flex items-center justify-center gap-2 px-6 py-1.5 bg-[#FDF1D6] text-[#F15A24] text-xs font-black uppercase tracking-wider drop-shadow-sm mb-2"
+                    style={{ clipPath: "polygon(15px 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 15px 100%, 0% 50%)" }}
+                  >
                     <HeartHandshake className="w-3.5 h-3.5" />
                     <span>Cerita Simoengil</span>
                   </div>
@@ -1345,8 +1767,11 @@ export default function Home() {
           <section className="relative py-20">
             <div className="w-full px-4 sm:px-6 lg:px-8">
               <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FFF5F0] border border-[#D48C70]/25 text-[#D48C70] font-bold text-xs uppercase tracking-widest shadow-xs">
-                  <Smile className="w-3.5 h-3.5 text-[#E8B37D]" />
+                <div 
+                  className="inline-flex items-center justify-center gap-2 px-6 py-1.5 bg-[#FDF1D6] text-[#F15A24] text-xs font-black uppercase tracking-wider drop-shadow-sm mb-2"
+                  style={{ clipPath: "polygon(15px 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 15px 100%, 0% 50%)" }}
+                >
+                  <Smile className="w-3.5 h-3.5" />
                   <span>Wall of Love</span>
                 </div>
                 <h2 className="font-serif text-3xl sm:text-4xl text-[#2A1F1A] leading-tight gsap-section-title relative inline-block pb-3">
@@ -1717,15 +2142,18 @@ export default function Home() {
         {/* FOOTER */}
         <SiteFooter />
 
-        {/* DETAIL MODAL */}
-        <ProductDetailModal
-          key={selectedProduct?.id || "no-product"}
-          product={selectedProduct}
-          isOpen={isDetailOpen}
-          onClose={() => setIsDetailOpen(false)}
-          onAddToCart={handleAddToCart}
-          onCelebrate={handleCelebrate}
+        {/* FEATURED PRODUCTS ADMIN MODAL */}
+        <FeaturedProductsAdminModal
+          isOpen={isFeaturedModalOpen}
+          onClose={() => setIsFeaturedModalOpen(false)}
+          productsList={productsList}
+          currentIds={featuredProductIds}
+          onSave={async (newIds) => {
+            await handleSettingsSave("featuredProductIds", newIds);
+          }}
         />
+
+        {/* DETAIL MODAL REMOVED (Direct Navigation to /product/[id]) */}
 
         {/* WISHLIST DRAWER */}
         <WishlistDrawer

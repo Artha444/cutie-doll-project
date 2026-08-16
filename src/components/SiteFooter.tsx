@@ -23,11 +23,14 @@ const ShopeeIcon = () => (
   </svg>
 );
 
-export function SiteFooter() {
-  const WA_NUMBER = '6281200000000';
-  const WA_DISPLAY = '+62 812-0000-0000';
-  const EMAIL = 'simoengil@gmail.com';
-  const CITY = 'Kab. Bandung, Jawa Barat';
+import { useSiteSettings } from '@/context/SiteSettingsContext';
+
+export function SiteFooter({ cloudColor = '#ffffff', showCloudDivider = true }: { cloudColor?: string, showCloudDivider?: boolean } = {}) {
+  const { settings } = useSiteSettings();
+  const WA_NUMBER = settings.whatsappNumber;
+  const WA_DISPLAY = settings.whatsappDisplay || settings.whatsappNumber;
+  const EMAIL = settings.email;
+  const CITY = settings.location;
   const INSTAGRAM_URL = 'https://instagram.com/simoengil';
   const SHOPEE_URL = 'https://shopee.co.id/simoengil';
 
@@ -42,11 +45,17 @@ export function SiteFooter() {
       }}
     >
       {/* WHITE CLOUD OVERLAY (Sits ON TOP at z-30, pure white clouds extending down from section above) */}
-      <div className="absolute top-0 left-0 right-0 w-full z-30 pointer-events-none select-none" aria-hidden="true">
+      {showCloudDivider && (
+        <div 
+          className="absolute top-0 left-0 right-0 w-full overflow-hidden flex justify-center z-30 pointer-events-none select-none" 
+          style={{ color: cloudColor }}
+          aria-hidden="true"
+        >
         <svg
           viewBox="0 0 1440 140"
+          preserveAspectRatio="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="w-full block h-auto"
+          className="w-full min-w-[1000px] block h-[120px] md:h-[140px]"
         >
           {/* Main Pure White Cloud Layer connecting seamlessly from top section */}
           <path
@@ -72,7 +81,7 @@ export function SiteFooter() {
               Q1415,72 1440,60
               L1440,0 Z
             "
-            fill="#ffffff"
+            fill="currentColor"
           />
           {/* Subtle Secondary Soft Cloud Puff Accent */}
           <path
@@ -98,11 +107,12 @@ export function SiteFooter() {
               Q1380,124 1440,115
               L1440,0 Z
             "
-            fill="#ffffff"
+            fill="currentColor"
             opacity="0.85"
           />
         </svg>
       </div>
+      )}
 
       {/* Dark overlay for text readability */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/75 pointer-events-none z-10" />

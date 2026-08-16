@@ -22,9 +22,11 @@ import {
   Menu,
   X,
   RefreshCw,
-  MessageSquare
+  MessageSquare,
+  Settings
 } from 'lucide-react';
 import AdminChatPanel from '@/components/AdminChatPanel';
+import { useSiteSettings } from '@/context/SiteSettingsContext';
 
 const getShippingDetails = (shippingAddress: any) => {
   if (!shippingAddress) return { name: 'Pelanggan', phone: '-', addressStr: '-' };
@@ -127,12 +129,43 @@ export default function AdminDashboardPage() {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryInput, setNewCategoryInput] = useState('');
   // Tab State
-  const [activeTab, setActiveTab] = useState<'katalog' | 'pesanan' | 'chat'>('katalog');
+  const [activeTab, setActiveTab] = useState<'katalog' | 'pesanan' | 'chat' | 'pengaturan'>('katalog');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [modalActiveTab, setModalActiveTab] = useState<'info_dasar' | 'media' | 'marketplace' | 'testimoni' | 'varian'>('info_dasar');
 
-  // Site Settings States
-  
+  // Site Contact Settings States
+  const { settings: siteContactSettings, updateSettings: updateSiteContactSettings } = useSiteSettings();
+  const [waNumberInput, setWaNumberInput] = useState(siteContactSettings.whatsappNumber);
+  const [waDisplayInput, setWaDisplayInput] = useState(siteContactSettings.whatsappDisplay);
+  const [emailInput, setEmailInput] = useState(siteContactSettings.email);
+  const [locationInput, setLocationInput] = useState(siteContactSettings.location);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  useEffect(() => {
+    setWaNumberInput(siteContactSettings.whatsappNumber);
+    setWaDisplayInput(siteContactSettings.whatsappDisplay);
+    setEmailInput(siteContactSettings.email);
+    setLocationInput(siteContactSettings.location);
+  }, [siteContactSettings]);
+
+  const handleSaveContactSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingSettings(true);
+    try {
+      await updateSiteContactSettings({
+        whatsappNumber: waNumberInput.trim(),
+        whatsappDisplay: waDisplayInput.trim(),
+        email: emailInput.trim(),
+        location: locationInput.trim(),
+      });
+      alert('✅ Pengaturan kontak & lokasi berhasil disimpan dan diperbarui di seluruh website!');
+    } catch (err: any) {
+      alert('Gagal menyimpan pengaturan: ' + err.message);
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
   // Effect: load orders when admin switches to "pesanan" tab
   useEffect(() => {
     if (activeTab === 'pesanan') {
@@ -292,10 +325,12 @@ export default function AdminDashboardPage() {
     setModalActiveTab('info_dasar');
     setName('');
     setPrice('');
-    setCategory('Boneka Beruang');
-    setImageUrl('');
     setDescription('');
-    setFormTypes([]);
+    setFormTypes([
+      { name: 'Pria', icon: 'CustomPria', extraPrice: 0 },
+      { name: 'Berhijab', icon: 'CustomHijab', extraPrice: 0 },
+      { name: 'Tidak Berhijab', icon: 'CustomWanita', extraPrice: 0 }
+    ]);
     setFormSizes([]);
     setRating('5.0');
     setReviewsCount('0');
@@ -312,7 +347,7 @@ export default function AdminDashboardPage() {
 
   // Add a new type row
   const addTypeRow = () => {
-    setFormTypes([...formTypes, { name: '', extraPrice: 0, image: '' }]);
+    setFormTypes([...formTypes, { name: 'Umum (Tanpa Gender)', icon: 'CustomUmum', extraPrice: 0, image: '' }]);
   };
 
   const handleTypeChange = (index: number, key: keyof ProductType, value: any) => {
@@ -322,6 +357,22 @@ export default function AdminDashboardPage() {
       ...updated[index],
       [key]: isNumeric ? (value === '' ? undefined : Number(value)) : value
     };
+    setFormTypes(updated);
+  };
+
+  const handlePresetChange = (index: number, preset: string) => {
+    const updated = [...formTypes];
+    if (preset === 'Pria') {
+      updated[index] = { ...updated[index], name: 'Pria', icon: 'CustomPria' };
+    } else if (preset === 'Berhijab') {
+      updated[index] = { ...updated[index], name: 'Berhijab', icon: 'CustomHijab' };
+    } else if (preset === 'Tidak Berhijab') {
+      updated[index] = { ...updated[index], name: 'Tidak Berhijab', icon: 'CustomWanita' };
+    } else if (preset === 'Umum') {
+      updated[index] = { ...updated[index], name: 'Umum (Tanpa Gender)', icon: 'CustomUmum' };
+    } else if (preset === 'CustomPalette') {
+      updated[index] = { ...updated[index], name: 'Custom Warna (Palette)', icon: 'CustomPalette' };
+    }
     setFormTypes(updated);
   };
 
@@ -404,8 +455,8 @@ export default function AdminDashboardPage() {
       specifications: {
         material: material,
         size: sizeSpec,
-        washing: 'Bisa dicuci dengan mesin (putaran lembut)',
-        safeForKids: true,
+        washing: 'Tidak disarankan dicuci (bersihkan debu secara kering/dry wipe)',
+        safeForKids: false,
         shopeePrice: shopeePrice ? Number(shopeePrice) : undefined,
         shopeeAvailable,
         images: additionalImages,
@@ -519,8 +570,8 @@ export default function AdminDashboardPage() {
     setDescription(p.description);
     setRating(String(p.rating || 5.0));
     setReviewsCount(String(p.reviewsCount || 0));
-    setMaterial(p.specifications?.material || '100% Premium Dacron Silikon & Kain Rasfur Halus');
-    setSizeSpec(p.specifications?.size || 'Ukuran Standar');
+    setMaterial(p.specifications?.material || '100% Kain Flanel Premium & Isian Dacron Grade A');
+    setSizeSpec(p.specifications?.size || 'Ukuran 10–20 cm');
     // Derive types and sizes for backward compatibility (from old variants array) if specifications lack them
     const derivedTypes = p.specifications?.types || (p.variants ? Array.from(new Set(p.variants.map((v: any) => v.type).filter(Boolean)))
       .map((t) => ({ name: t as string, extraPrice: 0 }))
@@ -635,6 +686,18 @@ export default function AdminDashboardPage() {
               <MessageSquare className="w-4 h-4" />
               <span>Live Chat</span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('pengaturan')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-extrabold transition-colors border cursor-pointer ${
+                activeTab === 'pengaturan' 
+                  ? 'bg-pink-50 text-pink-600 border-pink-100/50' 
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span>Pengaturan Kontak</span>
+            </button>
             
             <div className="pt-2 border-t border-slate-100">
               <Link
@@ -667,14 +730,22 @@ export default function AdminDashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div>
             <h1 className="text-2xl lg:text-3xl font-black text-slate-800 tracking-tight">
-              {activeTab === 'katalog' ? 'Kelola Katalog Boneka' : activeTab === 'pesanan' ? 'Kelola Pesanan Masuk' : 'Live Chat'}
+              {activeTab === 'katalog' 
+                ? 'Kelola Katalog Boneka' 
+                : activeTab === 'pesanan' 
+                ? 'Kelola Pesanan Masuk' 
+                : activeTab === 'chat'
+                ? 'Live Chat'
+                : 'Pengaturan Kontak Toko'}
             </h1>
             <p className="text-slate-400 text-xs sm:text-sm font-medium mt-1">
               {activeTab === 'katalog' 
                 ? 'Tambah, ubah, atau hapus daftar boneka dan kelola varian harga e-commerce.'
                 : activeTab === 'pesanan'
                 ? 'Pantau pesanan masuk dan update status pengiriman.'
-                : 'Balas pesan dari pelanggan secara real-time.'}
+                : activeTab === 'chat'
+                ? 'Balas pesan dari pelanggan secara real-time.'
+                : 'Atur nomor WhatsApp, email, dan lokasi toko yang ditampilkan di seluruh website.'}
             </p>
           </div>
           
@@ -688,6 +759,7 @@ export default function AdminDashboardPage() {
 
         {/* TAB CONTENT */}
         {activeTab === 'katalog' ? (
+          !isProductModalOpen ? (
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
           
           {/* COLUMN 1: PRODUCT LIST TABLE */}
@@ -783,15 +855,14 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           </section>
-
-          {/* PRODUCT MODAL FORM */}
-          {isProductModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 p-4 sm:p-6 backdrop-blur-sm">
-            <div className="relative w-full max-w-3xl animate-in fade-in zoom-in-95 duration-200">
-              <div className="bg-white border border-slate-200/80 rounded-[2rem] overflow-hidden shadow-2xl w-full max-h-[90vh] flex flex-col relative">
-              
-              {/* Form Title & Sticky Header */}
-              <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md px-6 py-5 border-b border-slate-100 flex items-center justify-between shrink-0">
+          </div>
+          ) : (
+          <div className="w-full animate-in fade-in duration-300 mt-2">
+            {/* PRODUCT FORM VIEW */}
+            <div className="bg-white border border-slate-200/80 rounded-[2rem] shadow-sm w-full flex flex-col relative">
+            
+            {/* Form Title & Sticky Header */}
+            <div className="sticky top-[72px] z-30 bg-white/90 backdrop-blur-md px-6 py-5 border-b border-slate-100 flex items-center justify-between shrink-0">
                 <h3 className="font-extrabold text-base text-slate-800 flex items-center gap-2.5">
                   <div className="p-2 bg-pink-50 text-pink-500 rounded-xl">
                     <PlusCircle className="w-5 h-5" />
@@ -801,15 +872,15 @@ export default function AdminDashboardPage() {
                 <button 
                   type="button"
                   onClick={() => setIsProductModalOpen(false)} 
-                  className="p-2.5 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-full cursor-pointer transition-colors"
-                  title="Tutup Form"
+                  className="px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl font-bold text-xs transition-colors cursor-pointer flex items-center gap-2"
+                  title="Kembali"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" /> Kembali
                 </button>
               </div>
 
               {/* Tab Navigation */}
-              <div className="flex items-center gap-2 px-6 py-3 bg-slate-50 border-b border-slate-100 overflow-x-auto hide-scrollbar sticky top-[73px] z-10 shrink-0">
+              <div className="flex items-center gap-2 px-6 py-3 bg-slate-50 border-b border-slate-100 overflow-x-auto hide-scrollbar sticky top-[146px] z-20 shrink-0">
                 {[
                   { id: 'info_dasar', label: 'Info Dasar' },
                   { id: 'media', label: 'Media' },
@@ -833,8 +904,8 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Form inputs */}
-              <form onSubmit={handleSaveProduct} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-                <div className="flex-1 p-6 sm:p-8 overflow-y-auto space-y-4">
+              <form onSubmit={handleSaveProduct} className="flex flex-col flex-1">
+                <div className="flex-1 p-6 sm:p-8 space-y-4">
                   {modalActiveTab === 'info_dasar' && (
                     <div className="space-y-4 animate-in fade-in duration-300">
                 
@@ -1373,7 +1444,9 @@ export default function AdminDashboardPage() {
                         Belum ada variasi. Tambahkan jika produk memiliki pilihan warna atau model dengan foto berbeda.
                       </p>
                     ) : (
-                      formTypes.map((t, i) => (
+                      formTypes.map((t, i) => {
+                        const presetValue = t.icon === 'CustomPria' ? 'Pria' : t.icon === 'CustomHijab' ? 'Berhijab' : t.icon === 'CustomWanita' ? 'Tidak Berhijab' : t.icon === 'CustomPalette' ? 'CustomPalette' : 'Umum';
+                        return (
                         <div key={i} className="bg-slate-50/60 rounded-2xl border border-slate-200/60 p-3 space-y-2 relative">
                           <button
                             type="button"
@@ -1386,22 +1459,38 @@ export default function AdminDashboardPage() {
                           <span className="text-[10px] font-black text-slate-400">Variasi #{i + 1}</span>
                           <div className="grid grid-cols-2 gap-2">
                             <div className="space-y-1">
-                              <span className="text-[9px] font-bold text-slate-400">Nama Variasi</span>
-                              <input
-                                type="text"
-                                placeholder="Cokelat, Pita Merah"
-                                value={t.name}
-                                onChange={(e) => handleTypeChange(i, 'name', e.target.value)}
+                              <span className="text-[9px] font-bold text-slate-400">Model / Ikon</span>
+                              <select
+                                value={presetValue}
+                                onChange={(e) => handlePresetChange(i, e.target.value)}
                                 className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800"
-                              />
+                              >
+                                <option value="Umum">Umum (Tanpa Gender)</option>
+                                <option value="CustomPalette">Custom Warna (Palette)</option>
+                                <option value="Pria">Pria</option>
+                                <option value="Berhijab">Wanita Berhijab</option>
+                                <option value="Tidak Berhijab">Wanita Tanpa Hijab</option>
+                              </select>
                             </div>
                             <div className="space-y-1">
                               <span className="text-[9px] font-bold text-slate-400">Tambahan Harga (IDR)</span>
                               <input
                                 type="number"
                                 placeholder="0"
-                                value={t.extraPrice || ''}
+                                value={t.extraPrice === undefined ? '' : t.extraPrice}
                                 onChange={(e) => handleTypeChange(i, 'extraPrice', e.target.value)}
+                                className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800"
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-slate-200/50">
+                            <div className="space-y-1">
+                              <span className="text-[9px] font-bold text-slate-400">Nama Variasi</span>
+                              <input
+                                type="text"
+                                placeholder="Nama variasi"
+                                value={t.name}
+                                onChange={(e) => handleTypeChange(i, 'name', e.target.value)}
                                 className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800"
                               />
                             </div>
@@ -1437,7 +1526,8 @@ export default function AdminDashboardPage() {
                             </div>
                           </div>
                         </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </div>
@@ -1536,10 +1626,7 @@ export default function AdminDashboardPage() {
               </form>
             </div>
           </div>
-        </div>
-        )}
-
-        </div>
+          )
         ) : activeTab === 'pesanan' ? (
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
             <section className="xl:col-span-7 space-y-3">
@@ -1670,6 +1757,101 @@ export default function AdminDashboardPage() {
 
         {activeTab === 'chat' && (
           <AdminChatPanel />
+        )}
+
+        {activeTab === 'pengaturan' && (
+          <div className="max-w-2xl bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="border-b border-slate-100 pb-4">
+              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                <Settings className="w-5 h-5 text-pink-500" />
+                Pengaturan Informasi Kontak & Toko
+              </h3>
+              <p className="text-xs text-slate-400 font-medium mt-1">
+                Ubah nomor WhatsApp, email, dan lokasi toko di sini. Perubahan akan langsung diperbarui secara otomatis di seluruh halaman website publik.
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveContactSettings} className="space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Nomor WhatsApp (Format Internasional / Tanpa Simbol)
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: 6281545585448"
+                  value={waNumberInput}
+                  onChange={(e) => setWaNumberInput(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:border-pink-500 focus:bg-white transition-all"
+                />
+                <span className="text-[10px] text-slate-400 block">
+                  Gunakan kode negara tanpa simbol + (misal 6281545585448). Digunakan untuk link wa.me pada tombol pemesanan & konfirmasi.
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Format Tampilan WhatsApp (Teks Publik)
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: +62 815-4558-5448"
+                  value={waDisplayInput}
+                  onChange={(e) => setWaDisplayInput(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:border-pink-500 focus:bg-white transition-all"
+                />
+                <span className="text-[10px] text-slate-400 block">
+                  Format penulisan nomor yang akan dibaca pelanggan pada bagian Footer dan Kebijakan Privasi.
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Alamat Email Toko
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="Contoh: simoengil@gmail.com"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:border-pink-500 focus:bg-white transition-all"
+                />
+                <span className="text-[10px] text-slate-400 block">
+                  Email resmi customer service yang ditampilkan di footer & halaman legal.
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Lokasi / Kota Toko
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Kab. Bandung, Jawa Barat"
+                  value={locationInput}
+                  onChange={(e) => setLocationInput(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:border-pink-500 focus:bg-white transition-all"
+                />
+                <span className="text-[10px] text-slate-400 block">
+                  Nama kota / lokasi toko yang ditampilkan pada footer toko.
+                </span>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isSavingSettings}
+                  className="px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-xl text-xs font-extrabold transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSavingSettings ? 'Menyimpan...' : 'Simpan Pengaturan Kontak'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
         )}
 
       </main>

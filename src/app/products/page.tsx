@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Heart, 
   Search, 
+  Filter,
   Sparkles, 
   Smile, 
   ShieldCheck, 
@@ -15,7 +17,9 @@ import {
   ChevronDown,
   Gift,
   HeartHandshake,
-  Star
+  Star,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { Product, ProductVariant, PRODUCTS } from '@/data/products';
 import { ProductCard } from '@/components/ProductCard';
@@ -64,6 +68,7 @@ interface SiteSettings {
 }
 
 export default function Home() {
+  const router = useRouter();
   // State
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(true);
@@ -78,7 +83,8 @@ export default function Home() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [user, setUser] = useState<any>(null);
   const [faqOpenIndex, setFaqOpenIndex] = useState<number | null>(null);
-  const [sortBy, setSortBy] = useState<string>('terlaris');
+  const [sortBy, setSortBy] = useState<string>('popular');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isSortOpen, setIsSortOpen] = useState<boolean>(false);
   const sortRef = React.useRef<HTMLDivElement>(null);
   const [heroTilt, setHeroTilt] = useState({ x: 0, y: 0 });
@@ -333,7 +339,7 @@ export default function Home() {
     
     setCart(updatedCart);
     localStorage.setItem('simoengil_cart', JSON.stringify(updatedCart));
-    setIsWishlistOpen(true);
+    handleCelebrate(product.image);
   };
 
   const handleRemoveCartItem = (cartItemId: string) => {
@@ -351,10 +357,16 @@ export default function Home() {
   }).sort((a, b) => {
     if (sortBy === 'termurah') return a.price - b.price;
     if (sortBy === 'termahal') return b.price - a.price;
-    if (sortBy === 'terlaris') {
+    if (sortBy === 'terlaris' || sortBy === 'popular') {
       const soldA = a.specifications?.soldCount || 0;
       const soldB = b.specifications?.soldCount || 0;
       return soldB - soldA;
+    }
+    if (sortBy === 'top_rated') {
+      return (b.rating || 0) - (a.rating || 0);
+    }
+    if (sortBy === 'newest') {
+      return Number(b.id) - Number(a.id);
     }
     return 0;
   });
@@ -363,8 +375,7 @@ export default function Home() {
 
   // Open product detail
   const handleProductDetailClick = (product: Product) => {
-    setSelectedProduct(product);
-    setIsDetailOpen(true);
+    router.push(`/product/${product.id}`);
   };
 
   // Toggle FAQ accordion
@@ -415,110 +426,190 @@ export default function Home() {
       </div>
 
       {/* HEADER / NAVBAR */}
-      
-
       <main className="flex-1 w-full overflow-x-hidden">
-      {/* CATALOG / PRODUCTS GRID */}
-      <section id="katalog" className="relative z-10 pt-12 pb-24 w-full px-4 sm:px-6 lg:px-8 min-h-screen">
         
-        {/* Section Title */}
-        <div className="text-center max-w-xl mx-auto mb-10 space-y-4">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/70 border border-[#FFB6C8]/30 text-[#FF8FB1] font-bold text-xs uppercase tracking-widest">
-            <Smile className="w-3.5 h-3.5 text-[#E8B37D]" />
-            <span>Koleksi Terfavorit</span>
+      {/* CATALOG FULL-BLEED HERO BANNER */}
+      <div className="relative w-full h-[450px] sm:h-[550px] lg:h-[600px] flex flex-col items-center justify-center pt-24 sm:pt-28 overflow-hidden bg-black">
+        {/* Background Hero Banner Image */}
+        <div className="absolute inset-0 w-full h-full">
+          <img src="/images/herobanner.jpeg" className="w-full h-full object-cover object-center" alt="Koleksi Boneka Handmade" />
+        </div>
+        
+        {/* Removed black gradient overlay as requested */}
+
+        {/* Text Content in Glassmorphic Container with Dashed Stitching Border */}
+        <div className="relative z-10 w-full max-w-[95rem] mx-auto px-4 sm:px-6 lg:px-12">
+          <div className="text-left max-w-2xl px-6 py-8 sm:px-10 sm:py-12 bg-white/35 backdrop-blur-md border-2 border-dashed border-[#FF8FB1]/70 rounded-[2.5rem] shadow-xl space-y-4 sm:space-y-5 relative">
+            <h1 className="text-3xl sm:text-5xl lg:text-[3.5rem] font-black text-[#2A1F1A] tracking-tight leading-tight">
+              Adopsi Teman Peluk Impianmu
+            </h1>
+            <p className="text-slate-700 text-xs sm:text-sm md:text-base font-bold leading-relaxed max-w-xl">
+              Temukan aneka karya boneka flanel buatan tangan yang gemoy dan berkarakter. Cocok untuk kado wisuda, ulang tahun, hiasan kamar, maupun dasbor mobil!
+            </p>
+          
+          {/* Action Buttons */}
+            <div className="flex flex-wrap items-center justify-start gap-3 sm:gap-4 pt-3">
+              <button className="px-6 py-2.5 sm:px-8 sm:py-3 bg-[#FF8FB1] text-white font-bold text-xs sm:text-sm rounded-xl shadow-[0_4px_15px_rgba(255,143,177,0.4)] hover:bg-[#FF7A9F] hover:-translate-y-0.5 transition-all">
+                Belanja Sekarang
+              </button>
+              <button className="px-6 py-2.5 sm:px-8 sm:py-3 bg-white text-[#2A1F1A] font-bold text-xs sm:text-sm rounded-xl border-2 border-[#FCE6CB] hover:bg-[#FFF0F3] hover:border-[#FF8FB1] hover:-translate-y-0.5 transition-all">
+                Lihat Kategori
+              </button>
+            </div>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-[#2C2C2C] tracking-tight font-heading gsap-section-title relative inline-block pb-3">
-            Adopsi Teman Peluk Impianmu
-            <span className="gsap-underline absolute bottom-0 left-1/2 -translate-x-1/2 bg-[#FF8FB1] h-[3px] w-0"></span>
-          </h2>
-          <p className="text-slate-500 text-sm font-medium leading-relaxed gsap-reveal" data-effect="blur">
-            Pilih dari ragam seri boneka handmade terbaik kami. Tersedia aneka boneka lucu, gantungan kunci gemas, hingga hampers wisuda.
-          </p>
         </div>
 
-        {/* Categories Tabs & Search & Sort Row */}
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-6 mb-12">
-          {/* Categories Tab Badges */}
-          <div className="flex flex-wrap gap-2.5 justify-center lg:justify-start flex-1 w-full lg:w-auto">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-5 py-3 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 border cursor-pointer ${
-                  selectedCategory === category
-                    ? 'bg-[#FF8FB1] border-[#FF8FB1] text-white shadow-md shadow-[#FF8FB1]/20 hover:scale-105'
-                    : 'bg-white border-[#FFB6C8]/25 text-slate-500 hover:text-[#2C2C2C] hover:border-[#FFB6C8] shadow-xs'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
+        {/* Floating Trust Badges (Sticker Style) */}
+        <div className="hidden md:block absolute right-[8%] top-[25%] bg-white/70 backdrop-blur-md px-4 py-2 rounded-full border border-white/60 shadow-[0_4px_15px_rgba(0,0,0,0.05)] rotate-3 hover:rotate-0 hover:scale-105 transition-all cursor-default">
+          <span className="text-[11px] lg:text-xs font-bold text-[#FF8FB1] flex items-center gap-1.5"><ShoppingBag className="w-3.5 h-3.5"/> Siap Kirim Indonesia</span>
+        </div>
+        
+        <div className="hidden md:block absolute right-[25%] top-[45%] bg-white/70 backdrop-blur-md px-4 py-2 rounded-full border border-white/60 shadow-[0_4px_15px_rgba(0,0,0,0.05)] -rotate-3 hover:rotate-0 hover:scale-105 transition-all cursor-default">
+          <span className="text-[11px] lg:text-xs font-bold text-[#FF8FB1] flex items-center gap-1.5"><RefreshCw className="w-3.5 h-3.5"/> Garansi Produk</span>
+        </div>
+        
+        <div className="hidden md:block absolute right-[5%] top-[65%] bg-white/70 backdrop-blur-md px-4 py-2 rounded-full border border-white/60 shadow-[0_4px_15px_rgba(0,0,0,0.05)] rotate-2 hover:rotate-0 hover:scale-105 transition-all cursor-default">
+          <span className="text-[11px] lg:text-xs font-bold text-[#FF8FB1] flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5"/> 100% Jahitan Tangan</span>
+        </div>
+        
+        <div className="hidden md:block absolute right-[30%] bottom-[15%] bg-white/70 backdrop-blur-md px-4 py-2 rounded-full border border-white/60 shadow-[0_4px_15px_rgba(0,0,0,0.05)] -rotate-6 hover:rotate-0 hover:scale-105 transition-all cursor-default">
+          <span className="text-[11px] lg:text-xs font-bold text-[#FF8FB1] flex items-center gap-1.5"><Heart className="w-3.5 h-3.5"/> Rating 4.9/5</span>
+        </div>
+      </div>
 
-          {/* Search Bar & Sorting */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-            {/* Search Bar */}
-            <div className="relative w-full sm:w-60">
-              <input
-                type="text"
-                placeholder="Cari boneka impianmu..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full py-3 pl-10 pr-4 rounded-2xl text-xs font-medium bg-white border border-[#FFB6C8]/20 focus:outline-none focus:ring-2 focus:ring-[#FFB6C8] focus:border-[#FFB6C8] shadow-xs transition-colors duration-300"
-              />
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            </div>
+      {/* UNIFIED FILTER TOOLBAR CARD (Notebook/Scrapbook Style from Reference) */}
+      <div className="w-full max-w-[95rem] mx-auto px-4 sm:px-6 lg:px-12 my-6 z-40 relative">
+        <div className="relative bg-[#FFFDFB] p-4 sm:p-6 rounded-[2.5rem] border-2 border-dashed border-[#D48C70]/40 shadow-[0_10px_30px_rgba(212,140,112,0.08)] overflow-visible">
+          
+          {/* Washi Tape Corner Accents (Matching Reference Image) */}
+          <div className="absolute -top-3 left-8 w-12 h-5 bg-[#FDE68A]/90 -rotate-12 shadow-xs z-30 pointer-events-none rounded-xs border border-amber-200/50" />
+          <div className="absolute -top-3 right-10 w-12 h-5 bg-[#FCA5A5]/90 rotate-12 shadow-xs z-30 pointer-events-none rounded-xs border border-rose-200/50" />
+          <div className="absolute -bottom-3 right-14 w-14 h-5 bg-[#FF8FB1]/90 -rotate-6 shadow-xs z-30 pointer-events-none rounded-xs border border-pink-200/50" />
 
-            {/* Sorting and Count */}
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-              <div className="text-xs font-extrabold text-slate-400 bg-white/80 border border-[#FFB6C8]/10 py-3 px-4 rounded-2xl shadow-xs whitespace-nowrap">
-                {filteredProducts.length} Teman Peluk
-              </div>
-              
-              <div className="relative" ref={sortRef}>
-                <button
-                  onClick={() => setIsSortOpen(!isSortOpen)}
-                  className="flex items-center justify-between py-3 pl-4 pr-4 rounded-2xl text-xs font-bold bg-white border border-[#FFB6C8]/20 text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#FFB6C8] shadow-xs cursor-pointer hover:border-[#FF8FB1] transition-colors duration-300 w-40"
-                >
-                  <span className="flex items-center gap-2">
-                    {sortBy === 'terlaris' && <Sparkles className="w-4 h-4 text-[#FF8FB1]" />}
-                    {sortBy === 'termurah' && <LucideIcons.TrendingDown className="w-4 h-4 text-emerald-500" />}
-                    {sortBy === 'termahal' && <LucideIcons.TrendingUp className="w-4 h-4 text-rose-500" />}
-                    {sortBy === 'terlaris' ? 'Terlaris' : sortBy === 'termurah' ? 'Termurah' : 'Termahal'}
-                  </span>
-                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {isSortOpen && (
-                  <div className="absolute z-50 top-full mt-2 w-40 bg-white border border-[#FFB6C8]/20 rounded-2xl shadow-lg overflow-hidden flex flex-col py-2">
-                    <button
-                      onClick={() => { setSortBy('terlaris'); setIsSortOpen(false); }}
-                      className={`flex items-center gap-2 px-4 py-2 text-xs font-bold hover:bg-[#FFF5F0] transition-colors ${sortBy === 'terlaris' ? 'text-[#FF8FB1]' : 'text-slate-600'}`}
-                    >
-                      <Sparkles className="w-4 h-4" /> Terlaris
-                    </button>
-                    <button
-                      onClick={() => { setSortBy('termurah'); setIsSortOpen(false); }}
-                      className={`flex items-center gap-2 px-4 py-2 text-xs font-bold hover:bg-[#FFF5F0] transition-colors ${sortBy === 'termurah' ? 'text-emerald-500' : 'text-slate-600'}`}
-                    >
-                      <LucideIcons.TrendingDown className="w-4 h-4" /> Termurah
-                    </button>
-                    <button
-                      onClick={() => { setSortBy('termahal'); setIsSortOpen(false); }}
-                      className={`flex items-center gap-2 px-4 py-2 text-xs font-bold hover:bg-[#FFF5F0] transition-colors ${sortBy === 'termahal' ? 'text-rose-500' : 'text-slate-600'}`}
-                    >
-                      <LucideIcons.TrendingUp className="w-4 h-4" /> Termahal
-                    </button>
-                  </div>
+          {/* Filter Toolbar Content */}
+          <div className="w-full flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 lg:gap-6">
+            
+            {/* 1. Search Bar */}
+            <div className="relative w-full lg:flex-1 lg:max-w-md">
+              <div className="flex items-center gap-2.5 px-4 py-2.5 bg-white rounded-full border-2 border-[#D48C70]/30 shadow-xs focus-within:border-[#D48C70] focus-within:ring-4 focus-within:ring-[#D48C70]/15 transition-all w-full">
+                <Search className="w-4.5 h-4.5 text-[#D48C70] shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Cari boneka impianmu..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-transparent text-sm font-semibold text-[#2A1F1A] placeholder-slate-400 focus:outline-none"
+                />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="text-xs text-slate-400 hover:text-[#D48C70] bg-slate-100 hover:bg-[#FFF0F3] w-6 h-6 rounded-full flex items-center justify-center font-bold transition-colors"
+                  >
+                    ✕
+                  </button>
                 )}
               </div>
             </div>
+
+            {/* 2. Showing Results Count */}
+            <div className="flex text-xs font-bold tracking-wide uppercase text-[#D48C70]/80 whitespace-nowrap px-2 pb-1 lg:pb-0">
+              Showing {filteredProducts.length > 0 ? 1 : 0}–{filteredProducts.length} of {productsList.length} items
+            </div>
+
+            {/* 3. Sort Options & View Mode Buttons (Matching Pill Button Design) */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto justify-between lg:justify-end overflow-hidden">
+              
+              {/* Sort Segmented Control Container */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+                <span className="text-xs sm:text-sm font-bold text-[#D48C70]/80 whitespace-nowrap pl-1 sm:pl-0">Sort by:</span>
+                
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide w-full sm:w-auto max-w-full">
+                  {/* Top Rated */}
+                  <button
+                    onClick={() => setSortBy('top_rated')}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border ${
+                      sortBy === 'top_rated'
+                        ? 'bg-[#D48C70] text-white border-[#D48C70] shadow-xs'
+                        : 'bg-white text-[#D48C70] border-[#D48C70]/40 hover:bg-[#D48C70]/10'
+                    }`}
+                  >
+                    Top Rated
+                  </button>
+
+                  {/* Popular */}
+                  <button
+                    onClick={() => setSortBy('popular')}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border ${
+                      sortBy === 'popular' || sortBy === 'terlaris'
+                        ? 'bg-[#D48C70] text-white border-[#D48C70] shadow-xs'
+                        : 'bg-white text-[#D48C70] border-[#D48C70]/40 hover:bg-[#D48C70]/10'
+                    }`}
+                  >
+                    Popular
+                  </button>
+
+                  {/* Newest */}
+                  <button
+                    onClick={() => setSortBy('newest')}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border ${
+                      sortBy === 'newest'
+                        ? 'bg-[#D48C70] text-white border-[#D48C70] shadow-xs'
+                        : 'bg-white text-[#D48C70] border-[#D48C70]/40 hover:bg-[#D48C70]/10'
+                    }`}
+                  >
+                    Newest
+                  </button>
+
+                  {/* Price */}
+                  <button
+                    onClick={() => setSortBy(sortBy === 'termurah' ? 'termahal' : 'termurah')}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border flex items-center gap-1 ${
+                      sortBy === 'termurah' || sortBy === 'termahal'
+                        ? 'bg-[#D48C70] text-white border-[#D48C70] shadow-xs'
+                        : 'bg-white text-[#D48C70] border-[#D48C70]/40 hover:bg-[#D48C70]/10'
+                    }`}
+                  >
+                    Price {sortBy === 'termurah' ? '↑' : sortBy === 'termahal' ? '↓' : ''}
+                  </button>
+                </div>
+              </div>
+
+              {/* View Mode Toggles (Circular Buttons from Reference Image) */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
+                    viewMode === 'grid'
+                      ? 'bg-[#D48C70] text-white border-[#D48C70] shadow-xs'
+                      : 'bg-white text-[#D48C70] border-[#D48C70]/40 hover:bg-[#D48C70]/10'
+                  }`}
+                  title="Grid View"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
+                    viewMode === 'list'
+                      ? 'bg-[#D48C70] text-white border-[#D48C70] shadow-xs'
+                      : 'bg-white text-[#D48C70] border-[#D48C70]/40 hover:bg-[#D48C70]/10'
+                  }`}
+                  title="List View"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* CATALOG / PRODUCTS GRID */}
+      <section id="katalog" className="relative z-10 pt-2 pb-24 w-full px-4 sm:px-6 lg:px-12 max-w-[95rem] mx-auto min-h-screen">
 
         {/* Empty State */}
         {isLoadingProducts ? (
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4 md:gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-10">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="bg-white rounded-[2rem] p-3 shadow-md border border-slate-100 flex flex-col h-full overflow-hidden relative group animate-pulse">
                 <div className="relative aspect-square w-full rounded-3xl bg-slate-200 overflow-hidden mb-4 shrink-0"></div>
@@ -564,8 +655,8 @@ export default function Home() {
             </button>
           </div>
         ) : (
-          /* Products Grid */
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4 md:gap-8">
+          /* Products Grid / List */
+          <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-10" : "grid grid-cols-1 md:grid-cols-2 gap-6"}>
             {(() => {
               const filterKey = `${selectedCategory}-${searchQuery}-${sortBy}`;
               return filteredProducts.map((product, index) => (
@@ -584,48 +675,43 @@ export default function Home() {
       </section>
 
       {/* PROMO BANNER SECTION */}
-      {/* <section className="relative z-10 w-full px-4 sm:px-6 lg:px-8 mb-24">
-        <div className="relative rounded-[2.5rem] bg-gradient-to-tr from-[#FF8FB1] to-[#FFB6C8] p-8 md:p-14 overflow-hidden shadow-lg border border-white/20 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+      <section className="relative z-10 w-full px-4 sm:px-6 lg:px-12 mb-24 max-w-[95rem] mx-auto">
+        <div className="relative rounded-[2.5rem] bg-gradient-to-tr from-[#FF8FB1] via-[#FFB6C8] to-[#FCE6CB] p-8 md:p-12 overflow-hidden shadow-[0_15px_45px_rgba(255,143,177,0.25)] border-2 border-white/40 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-white/20 rounded-full blur-2xl pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-pink-700/10 rounded-full blur-xl pointer-events-none" />
           
-          <div className="space-y-4 text-center md:text-left z-10 max-w-xl">
-            <span className="text-xs font-black bg-white/20 text-white px-4 py-1.5 rounded-full uppercase tracking-wider">
-              🎁 Promo Spesial Bulan Ini
+          <div className="space-y-3 text-center md:text-left z-10 max-w-xl">
+            <span className="inline-flex items-center gap-1.5 text-xs font-black bg-white/30 text-white px-4 py-1.5 rounded-full uppercase tracking-wider backdrop-blur-sm border border-white/30">
+              <Gift className="w-3.5 h-3.5 text-white" />
+              <span>Promo Spesial Bulan Ini</span>
             </span>
-            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight font-heading">
-              Beli 2 Boneka Gemoy, Dapatkan Gantungan Kunci Gratis!
+            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight font-heading drop-shadow-xs">
+              Beli 2 Boneka Gemoy, Dapatkan Bonus Spesial!
             </h3>
-            <p className="text-white/90 text-xs sm:text-sm font-medium leading-relaxed">
-              Dapatkan bonus langsung gantungan kunci beruang/bunny premium untuk setiap pembelian minimal 2 boneka beruang tipe apapun di official store Shopee kami. Promo otomatis berlaku selama persediaan masih ada!
+            <p className="text-white/95 text-xs sm:text-sm font-medium leading-relaxed">
+              Dapatkan bonus langsung gantungan kunci beruang/bunny premium untuk setiap pembelian minimal 2 boneka di official store Shopee kami.
             </p>
           </div>
 
           <div className="shrink-0 z-10 w-full md:w-auto">
             <a
-              href="https://shopee.co.id"
+              href="https://shopee.co.id/simoengil"
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full md:w-auto text-center py-4 px-8 bg-white hover:bg-[#FFF5F0] text-[#FF8FB1] font-extrabold rounded-2xl shadow-md transition-all hover:scale-[1.03] active:scale-95 duration-200"
+              className="inline-flex items-center justify-center gap-2 w-full md:w-auto text-center py-4 px-8 bg-white hover:bg-[#FFF8F0] text-[#FF8FB1] font-black rounded-2xl shadow-md transition-all hover:scale-[1.03] active:scale-95 duration-200 cursor-pointer"
             >
-              Belanja di Shopee & Claim Bonus 🧸
+              <span>Belanja di Shopee & Claim Bonus</span>
+              <ShoppingBag className="w-4 h-4 text-[#FF8FB1]" />
             </a>
           </div>
-      </section> */}
+        </div>
+      </section>
 
         {/* FOOTER */}
-        <SiteFooter />
+        <SiteFooter showCloudDivider={false} />
 
 
-      {/* DETAIL MODAL */}
-      <ProductDetailModal
-        key={selectedProduct?.id || 'no-product'}
-        product={selectedProduct}
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        onAddToCart={handleAddToCart}
-        onCelebrate={handleCelebrate}
-      />
+      {/* DETAIL MODAL REMOVED (Direct Navigation to /product/[id]) */}
 
       {/* WISHLIST DRAWER */}
       <WishlistDrawer
@@ -648,7 +734,14 @@ export default function Home() {
         trigger={celebrateTrigger}
         productImage={celebrateProductImage}
         cartIconRef={drawerCartIconRef}
-        onComplete={() => setCelebrateTrigger(false)}
+        onComplete={() => {
+          setCelebrateTrigger(false);
+          if (window.innerWidth < 768) {
+            router.push("/cart");
+          } else {
+            setIsWishlistOpen(true);
+          }
+        }}
       />
 
       <OrderTrackingModal isOpen={isTrackingOpen} onClose={() => setIsTrackingOpen(false)} />
